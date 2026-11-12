@@ -103,8 +103,8 @@ Every non-2xx response has this shape:
   "created_at": "2026-11-12T22:00:00Z",
   "confirmed_at": null,
   "expires_at": "2026-11-12T22:15:00Z",
-  "customer": { "name": "Ana Pérez", "email": "ana@example.com" },
-  "delivery": { "method": "pickup | shipping", "warehouse_id": "WH-MVD-CEN", "address": null },
+  "customer": { "name": "Ana Pérez", "email": "ana@example.com", "address": "Av. 18 de Julio 1234, Montevideo" },
+  "delivery": { "method": "pickup | shipping", "warehouse_id": "WH-MVD-CEN" },
   "items": [ { "product_id": "MN-MON-0001", "name": "…", "unit_price": 468.62, "quantity": 2, "line_total": 937.24 } ],
   "total": 937.24,
   "currency": "USD"
@@ -144,7 +144,7 @@ The cart **does not reserve stock**. Availability is validated when adding/updat
 ### Checkout and orders (RF-11..RF-16)
 | Method | Path | Body | Response |
 |---|---|---|---|
-| POST | `/api/checkout` | `{ "customer": { "name", "email" }, "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" } }` or `{ …, "delivery": { "method": "shipping", "address": "…" } }` | `201 Order` with `status = pending_confirmation`. Validates stock, freezes prices, **does not touch stock**. 409 `CART_EMPTY` / `INSUFFICIENT_STOCK` |
+| POST | `/api/checkout` | `{ "customer": { "name", "email", "address" }, "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" } }` or `{ …, "delivery": { "method": "shipping" } }` (shipping uses `customer.address`). All three customer fields are required (RF-11: minimum data to simulate a purchase). | `201 Order` with `status = pending_confirmation`. Validates stock, freezes prices, **does not touch stock**. 409 `CART_EMPTY` / `INSUFFICIENT_STOCK` |
 | POST | `/api/orders/{order_id}/confirm` | – | `Order` with `status = confirmed`. In one transaction: re-validate and decrement stock (row lock), empty the cart. 409 `INSUFFICIENT_STOCK` / `ORDER_NOT_PENDING`, 410 `ORDER_DRAFT_EXPIRED` |
 | POST | `/api/orders/{order_id}/cancel` | – | `Order` with `status = cancelled` |
 | GET | `/api/orders` | – | `[Order]` of the session, newest first |
@@ -185,6 +185,40 @@ Response `200`:
 
 Errors: 503 `LLM_UNAVAILABLE` (the UI shows a message and the rest of the app keeps working, RNF-04).
 
+#### POST `/api/chat/stream` (Server-Sent Events)
+Same request body as `/api/chat`. Response `Content-Type: text/event-stream`. The frontend uses it by default and falls back to `/api/chat` if the stream fails. Because it is a POST, the frontend reads it with `fetch` + `ReadableStream` (not `EventSource`).
+
+Events, in order:
+
+| event | data | Use in the UI |
+|---|---|---|
+| `meta` | `{ "conversation_id": "c1f0…" }` | Store the conversation id |
+| `tool_call` | `{ "name": "search_products", "args": { … } }` | Status line: "Buscando productos…", "Consultando stock…" |
+| `token` | `{ "text": "Te recom" }` | Append to the assistant bubble |
+| `block` | `Block` (same types as `/api/chat`) | Render the card/table/modal |
+| `done` | `{ "reply": "…full text…", "tools_used": [ … ] }` | Close the bubble |
+| `error` | `{ "error": { "code": "LLM_UNAVAILABLE", "message": "…" } }` | Show the message; the stream ends |
+
+Example:
+```
+event: meta
+data: {"conversation_id":"c1f0"}
+
+event: tool_call
+data: {"name":"search_products","args":{"query":"auriculares videollamadas","max_price":200}}
+
+event: token
+data: {"text":"Te recomiendo"}
+
+event: block
+data: {"type":"product_recommendations","items":[…]}
+
+event: done
+data: {"reply":"Te recomiendo estas tres opciones…","tools_used":[…]}
+```
+
+`block` events are emitted only after the tools that back them have returned, so a card never shows a price that was not read from the database in that turn (RF-07, RF-18).
+
 #### GET `/api/chat/{conversation_id}`
 `{ "conversation_id", "messages": [ { "role": "user | assistant", "content", "blocks", "created_at" } ] }`, used to restore the chat after a reload.
 
@@ -197,6 +231,6 @@ The frontend then calls `/api/chat` with that text and `input_mode = "voice"`.
 
 ## 4. Open questions for review
 
-1. Is a non-streaming `/chat` enough for v1? (SSE can be added later without changing the payload.)
-2. Draft expiration of 15 minutes: OK?
-3. Do we need `customer` beyond name and email (address only for shipping)?
+1. ~~Streaming~~ → resolved: SSE via `/api/chat/stream`, with `/api/chat` as fallback.
+2. Draft expiration of 15 minutes: pending.
+3. ~~Customer fields~~ → resolved: `name`, `email`, `address` (the assignment asks for nothing more).
