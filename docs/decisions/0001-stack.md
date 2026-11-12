@@ -40,15 +40,17 @@ Elegimos cada pieza con tres criterios:
 
 **Por qué Ollama:** es la única opción que cumple a la vez "se ejecuta en local con Docker", "sin secretos obligatorios" y "con herramientas". La documentación oficial confirma que soporta *tool calling*: el modelo pide ejecutar una función y la aplicación le devuelve el resultado [1]. El backend accede al modelo a través de una interfaz propia, así que pasar a un proveedor comercial es cambiar una variable de entorno, sin tocar la lógica.
 
-**Qué modelos vamos a comparar:** solo sirven los modelos que Ollama marca con la capacidad *tools* [2]. Preseleccionamos tres que entran en una notebook:
+**Qué modelo usamos: `qwen3:8b`.** Solo sirven los modelos que Ollama marca con la capacidad *tools* [2]. Entre ellos, comparamos estas opciones que entran en una computadora con 8 GB de RAM:
 
-| Modelo | Tamaño | Por qué está en la comparación |
+| Modelo | A favor | En contra |
 |---|---|---|
-| `qwen3:8b` | 8 mil millones de parámetros | Soporta herramientas y razonamiento [3]. La familia Qwen aparece entre las mejores abiertas en el Berkeley Function Calling Leaderboard [4]. |
-| `llama3.1:8b` | 8 mil millones | El modelo con herramientas más descargado de Ollama (más de 120 millones de descargas) [5]. Sirve de referencia. |
-| `qwen3:4b` | 4 mil millones | Versión más liviana, para medir cuánto se pierde en calidad a cambio de velocidad. |
+| **`qwen3:8b` (elegido)** | Soporta herramientas y además un modo de razonamiento antes de responder [3], útil cuando hay que encadenar varias herramientas (buscar, después consultar stock, después recomendar). Es multilingüe, incluido el español. | Con el razonamiento activado tarda más en responder. |
+| `llama3.1:8b` | Soporta herramientas y es el más descargado de los dos (más de 120 millones de descargas) [5]. | Es una generación anterior y no tiene modo de razonamiento [5]. |
+| `qwen3:4b` | Misma familia, la mitad de tamaño: responde más rápido y usa menos memoria [3]. | Con menos parámetros, la precisión al elegir herramientas suele ser menor. |
 
-El *Berkeley Function Calling Leaderboard* es el benchmark público de referencia para medir qué tan bien un modelo elige y completa llamadas a funciones [4]. Como los rankings cambian con cada versión, no elegimos el modelo final por el ranking: lo elegimos **probando los tres con nuestros 10 casos de uso** (tarea AI-07). Medimos si elige la herramienta correcta, si pide aclaración cuando falta información, si inventa datos y cuánto tarda.
+Para comparar modelos en el uso de herramientas, la referencia pública es el *Berkeley Function Calling Leaderboard* de la Universidad de Berkeley [4]. Mide qué tan bien un modelo elige la función correcta y completa sus parámetros.
+
+**Cómo se cambia:** el modelo se elige con la variable de entorno `LLM_MODEL`. Pasar a cualquiera de las alternativas no requiere tocar código.
 
 **Modelo de embeddings:** `nomic-embed-text`. Pesa 274 MB y corre en Ollama, así que no suma otro servicio. Según su ficha supera a los modelos de embeddings de OpenAI `ada-002` y `text-embedding-3-small` [6]. Ese dato lo informa el propio autor, no es una medición independiente.
 
