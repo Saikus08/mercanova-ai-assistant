@@ -1,48 +1,51 @@
 # MercaNova AI Shopping Assistant
 
-AI-assisted e-commerce prototype for the fictional retailer MercaNova. Universidad ORT Uruguay, Sistemas de Soporte de Decisión, Obligatorio 2 (Grupo 8, N8B).
+Prototipo de e-commerce con asistente de inteligencia artificial para la empresa ficticia MercaNova.
+Universidad ORT Uruguay, Sistemas de Soporte de Decisión, Obligatorio 2. Grupo 8 (N8B): Agustín Vignolo y Florencia Mendoza.
 
-A user describes what they need in natural language (text or voice), receives grounded product recommendations, compares options, manages a cart and completes a fictitious purchase.
+El usuario describe lo que necesita en lenguaje natural, por texto o por voz. El asistente busca en el catálogo, recomienda productos explicando por qué, compara opciones y ayuda a completar una compra ficticia. Los precios y el stock que muestra siempre salen de la base de datos.
 
-## Stack
+## Tecnologías
 
-React + Vite (frontend) · FastAPI (backend) · PostgreSQL + pgvector · Ollama · faster-whisper · Docker Compose. Rationale in [ADR-0001](docs/decisions/0001-stack.md).
+React + Vite (frontend) · FastAPI (backend) · PostgreSQL con pgvector · Ollama (modelo de lenguaje local) · faster-whisper (voz a texto) · Docker Compose.
 
-## Run locally
+La justificación de cada elección, con alternativas y fuentes, está en [Decisión 0001: Tecnologías de la solución](docs/decisions/0001-stack.md).
 
-Requirements: Docker Desktop with at least 8 GB of RAM assigned.
+## Cómo levantarlo
+
+Requisitos: Docker Desktop con al menos 8 GB de memoria asignada.
 
 ```bash
-cp .env.example .env          # adjust values if needed
-make up                       # start services
-make pull-models              # download LLM + embedding models (first time only)
-make seed                     # load the dataset and build embeddings
+cp .env.example .env     # configuración local; los valores por defecto funcionan
+make up                  # levanta todos los servicios
+make pull-models         # descarga el modelo de lenguaje y el de embeddings (solo la primera vez)
+make seed                # carga el catálogo en la base y genera los embeddings
 ```
 
-> Run instructions will be completed as backend (BE-01) and frontend (FE-01) are scaffolded.
+> **Estado actual:** hoy el compose levanta solo la base de datos y Ollama. Esta sección se completa cuando estén el backend y el frontend.
 
-## Environment variables
+## Variables de entorno
 
-All configuration is read from environment variables; `.env.example` lists them. Secrets are never committed.
+Toda la configuración se lee de variables de entorno. Ningún secreto se guarda en el repositorio.
 
-| Variable | Purpose | Example |
+| Variable | Para qué sirve | Valor de ejemplo |
 |---|---|---|
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Database credentials | `mercanova` / `change-me` / `mercanova` |
-| `POSTGRES_PORT` | Host port for PostgreSQL | `5432` |
-| `DATABASE_URL` | Backend connection string | `postgresql+psycopg://mercanova:change-me@db:5432/mercanova` |
-| `LLM_PROVIDER` | `ollama` (default) or a hosted provider | `ollama` |
-| `OLLAMA_BASE_URL` / `OLLAMA_PORT` | Ollama endpoint | `http://ollama:11434` / `11434` |
-| `LLM_MODEL` | Chat model with tool calling | `qwen2.5:7b` |
-| `EMBEDDING_MODEL` | Embedding model | `nomic-embed-text` |
-| `AGENT_MAX_STEPS` | Max tool-calling iterations per turn | `6` |
-| `LLM_API_KEY` | Only for hosted providers | *(empty)* |
-| `STT_MODEL` / `STT_LANGUAGE` | faster-whisper settings | `small` / `es` |
-| `DATASET_PATH` | Path to the course dataset inside the container | `/data/MercaNova_dataset_obligatorio_2.xlsx` |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Credenciales de la base | `mercanova`, `change-me`, `mercanova` |
+| `POSTGRES_PORT` | Puerto local de la base | `5432` |
+| `DATABASE_URL` | Conexión que usa el backend | `postgresql+psycopg://mercanova:change-me@db:5432/mercanova` |
+| `LLM_PROVIDER` | Proveedor del modelo de lenguaje | `ollama` |
+| `OLLAMA_BASE_URL`, `OLLAMA_PORT` | Dirección de Ollama | `http://ollama:11434`, `11434` |
+| `LLM_MODEL` | Modelo de chat (tiene que soportar herramientas) | `qwen3:8b` |
+| `EMBEDDING_MODEL` | Modelo para la búsqueda por significado | `nomic-embed-text` |
+| `AGENT_MAX_STEPS` | Máximo de llamadas a herramientas por respuesta | `6` |
+| `LLM_API_KEY` | Solo si se usa un proveedor pago | *(vacío)* |
+| `STT_MODEL`, `STT_LANGUAGE` | Configuración de voz a texto | `small`, `es` |
+| `DATASET_PATH` | Ruta del Excel de la cátedra dentro del contenedor | `/data/MercaNova_dataset_obligatorio_2.xlsx` |
 
-## How we work
+## Cómo trabajamos
 
-- Rules for humans and coding agents: [AGENTS.md](AGENTS.md)
-- Skills per role: `.claude/skills/` (`backend-feature`, `testing`, `frontend-component`, `code-review`)
-- Decisions: `docs/decisions/` (ADRs)
-- Use cases for tests and the demo: [docs/use-cases.md](docs/use-cases.md)
-- Every task is a GitHub issue, every change a reviewed PR (template in `.github/`).
+- **Reglas para el equipo y para el coding agent:** [AGENTS.md](AGENTS.md).
+- **Skills del coding agent**, una por rol: backend, testing, frontend y revisión de código. Están en `.claude/skills/`.
+- **Decisiones de diseño:** una por archivo en `docs/decisions/`, con alternativas, justificación y costos.
+- **Casos de uso** que usamos para testear y para el video: [docs/use-cases.md](docs/use-cases.md).
+- **Flujo de trabajo:** cada tarea es una issue de GitHub. Cada cambio entra por un pull request que revisa la otra persona del equipo.
