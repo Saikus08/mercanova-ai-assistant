@@ -1,0 +1,16 @@
+.env
+*.env.local
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+node_modules/
+dist/
+.vite/
+.DS_Store
+*.log
+# Runtime artifacts
+models/
+data/*.xlsx

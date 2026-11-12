@@ -1,0 +1,24 @@
+name: Task
+description: A unit of work from the action plan
+title: "[ID] "
+body:
+  - type: input
+    id: covers
+    attributes:
+      label: Covers (RF/RNF/rubric)
+      placeholder: RF-09, RF-10
+  - type: textarea
+    id: spec
+    attributes:
+      label: Spec and acceptance criteria
+    validations:
+      required: true
+  - type: textarea
+    id: agent
+    attributes:
+      label: Coding agent prompt / skill to use
+      placeholder: Use skill backend-feature. Implement ...
+  - type: textarea
+    id: tests
+    attributes:
+      label: How it will be tested
