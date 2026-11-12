@@ -1,22 +1,28 @@
-# ADR-NNNN: <title>
+# Decisión NNNN: <título corto>
 
-- **Status:** proposed | accepted | superseded by ADR-XXXX
-- **Date:** YYYY-MM-DD
-- **Owner:** <name>
-- **Related issue / RF:** #NN, RF-XX
+- **Estado:** propuesta | aceptada | reemplazada por la decisión XXXX
+- **Fecha:** DD/MM/AAAA
+- **Autores:** <nombres>
 
-## Problem
-What need had to be solved and why it matters.
+> Cómo escribirla: el lector es el docente que corrige. Tiene que entenderse sin leer otros documentos ni el código. Frases cortas. Si nombrás un requerimiento, decí también qué es (por ejemplo: "confirmación explícita antes de comprar (RF-12)"). Si afirmás algo sobre una tecnología, citá la fuente.
 
-## Alternatives considered
-1. **Option A**: short description.
-2. **Option B**: short description.
+## Problema
+Qué necesidad había que resolver y por qué importa para el producto.
 
-## Decision
-The chosen option.
+## Alternativas
+| Opción | A favor | En contra |
+|---|---|---|
+| Opción A | | |
+| Opción B | | |
 
-## Justification
-Why this option fits this project (requirements, team skills, time, evaluation criteria).
+## Decisión
+Qué elegimos.
 
-## Trade-offs
-Advantages, costs, risks and limitations accepted. What would change in a production setting.
+## Justificación
+Por qué esa opción, en relación con lo que pide la letra.
+
+## Costos y riesgos (trade-offs)
+Qué aceptamos perder o arriesgar, y qué cambiaría en un entorno productivo.
+
+## Fuentes
+1. Nombre del recurso: URL

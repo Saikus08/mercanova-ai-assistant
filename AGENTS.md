@@ -70,4 +70,14 @@ docs/         ADRs, diagrams, model comparison, report assets
 
 ## Language
 
-Code, identifiers, comments and commit messages in English. User-facing UI copy and assistant replies in Spanish (Rioplatense neutral).
+Code, identifiers, comments and commit messages in English. User-facing UI copy and assistant replies in Spanish (Rioplatense neutral). Documentation for reviewers (`docs/`, README, issues, PR descriptions) in neutral Spanish.
+
+## Documentation rules
+
+The reader is the professor grading the project. Every document, issue and PR must be understandable on its own.
+
+1. Short, concrete sentences. Say what the thing does and why, not how we feel about it.
+2. Never cite a requirement only by its code: write "explicit purchase confirmation (RF-12)", not just "RF-12".
+3. Do not link to documents that do not exist yet or are incomplete, and do not use internal task IDs without saying what they are.
+4. Every technology choice or claim about a tool cites a source (official docs, benchmark, repository) and compares at least one alternative.
+5. Diagrams and screenshots must show what is actually implemented.
