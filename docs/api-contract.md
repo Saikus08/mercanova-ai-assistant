@@ -1,45 +1,46 @@
-# API contract (v0, draft)
+# Contrato de la API
 
-Contract between `frontend/` and `backend/`. Once both owners approve it, the frontend can build against a mock (MSW) and the backend implements it independently. Changes after approval go through a PR that both review.
+Este documento define cómo se comunican el frontend y el backend: qué direcciones (endpoints) existen, qué datos reciben y qué devuelven. Lo acordamos antes de programar para trabajar en paralelo. El frontend se construye contra datos simulados que respetan este formato y el backend lo implementa por su lado. Si después hay que cambiar algo, el cambio se hace con un pull request que revisan las dos personas del equipo.
 
-- Base URL: `/api` (frontend proxy to `http://backend:8000/api`)
-- Format: JSON, `snake_case` fields, money as numbers in **USD** with 2 decimals, dates ISO 8601 UTC.
-- Session: no authentication (out of scope). The frontend generates a UUID on first load, stores it in `localStorage` and sends it on every request as header **`X-Session-Id`**. The cart, the conversation and the order history belong to that session.
-- Source of truth: `price` and `available_qty` in every response are read from the database at request time (RF-07).
+## Reglas generales
 
----
+- **Dirección base:** todas las rutas empiezan con `/api`.
+- **Formato:** JSON. Los nombres de campos van en inglés y en `snake_case` (por ejemplo `product_id`). Los montos son números en dólares con dos decimales. Las fechas usan el formato ISO 8601 en hora UTC.
+- **Sesión del usuario:** no hay login, porque la letra lo deja fuera del alcance. La primera vez que se abre la aplicación, el frontend genera un identificador al azar, lo guarda en el navegador y lo manda en cada pedido en el encabezado `X-Session-Id`. El carrito, la conversación y el historial de órdenes quedan asociados a ese identificador.
+- **Precio y stock siempre actuales:** cada respuesta que incluye precio o disponibilidad los lee de la base de datos en ese momento. Nunca salen de una copia guardada ni del modelo de lenguaje. Así lo pide la letra para la información sensible de la compra (RF-07).
 
-## 1. Errors
+## 1. Errores
 
-Every non-2xx response has this shape:
+Cuando algo sale mal, la respuesta siempre tiene la misma forma:
 
 ```json
 { "error": { "code": "INSUFFICIENT_STOCK", "message": "Solo hay 7 unidades disponibles.", "details": { "product_id": "MN-MON-0001", "available_qty": 7 } } }
 ```
 
-`message` is in Spanish and can be shown to the user as is.
+`message` está en español y el frontend lo puede mostrar tal cual al usuario. `code` le permite al frontend reaccionar distinto según el caso.
 
-| HTTP | code | When |
+| Código HTTP | `code` | Cuándo ocurre |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | Invalid body or query params |
-| 400 | `MISSING_SESSION` | No `X-Session-Id` header |
-| 404 | `PRODUCT_NOT_FOUND` | Unknown product id |
-| 404 | `ORDER_NOT_FOUND` | Unknown order or not owned by the session |
-| 409 | `INSUFFICIENT_STOCK` | Quantity above availability (cart or confirm) |
-| 409 | `PRODUCT_INACTIVE` | Product exists but `active = false` |
-| 409 | `CART_EMPTY` | Checkout with an empty cart |
-| 409 | `ORDER_NOT_PENDING` | Confirm/cancel an order that is not `pending_confirmation` |
-| 410 | `ORDER_DRAFT_EXPIRED` | Draft older than 15 minutes |
-| 422 | `AUDIO_UNREADABLE` | Empty or undecodable audio |
-| 503 | `LLM_UNAVAILABLE` | Ollama not reachable or timed out |
-| 503 | `STT_UNAVAILABLE` | Speech-to-text not available |
-| 500 | `INTERNAL_ERROR` | Unexpected; never exposes a stack trace |
+| 400 | `VALIDATION_ERROR` | Faltan datos o tienen un formato incorrecto |
+| 400 | `MISSING_SESSION` | El pedido no trae el encabezado `X-Session-Id` |
+| 404 | `PRODUCT_NOT_FOUND` | El producto no existe |
+| 404 | `ORDER_NOT_FOUND` | La orden no existe o es de otra sesión |
+| 409 | `INSUFFICIENT_STOCK` | Se pide más cantidad de la disponible, al agregar al carrito o al confirmar |
+| 409 | `PRODUCT_INACTIVE` | El producto existe pero ya no se vende |
+| 409 | `CART_EMPTY` | Se intenta pasar al checkout con el carrito vacío |
+| 409 | `PRICE_CHANGED` | Al confirmar, el precio de algún producto cambió desde que se armó la orden |
+| 409 | `ORDER_NOT_PENDING` | Se intenta confirmar o cancelar una orden ya confirmada o cancelada |
+| 422 | `AUDIO_UNREADABLE` | El audio llegó vacío o no se puede procesar |
+| 503 | `LLM_UNAVAILABLE` | El modelo de lenguaje no responde |
+| 503 | `STT_UNAVAILABLE` | El servicio de voz a texto no responde |
+| 500 | `INTERNAL_ERROR` | Error inesperado. Nunca muestra detalles técnicos al usuario |
 
----
+## 2. Estructuras de datos que se repiten
 
-## 2. Shared schemas
+### Producto (versión resumida)
 
-### ProductSummary
+Se usa en listados y en las tarjetas que muestra el asistente.
+
 ```json
 {
   "product_id": "MN-MON-0001",
@@ -58,7 +59,12 @@ Every non-2xx response has this shape:
 }
 ```
 
-### ProductDetail = ProductSummary +
+`available_qty` es la suma de las unidades disponibles en los cinco depósitos.
+
+### Producto (detalle)
+
+Incluye todo lo anterior y además:
+
 ```json
 {
   "description": "…",
@@ -71,19 +77,14 @@ Every non-2xx response has this shape:
   "weight_kg": 6.74,
   "warranty_months": 12,
   "return_days": 30,
-  "specifications": [
-    { "group": "Display", "name": "Screen Size", "value": "24", "unit": "in" }
-  ],
-  "availability": [
-    { "warehouse_id": "WH-MVD-CEN", "warehouse_name": "MercaNova Centro", "city": "Montevideo", "available_qty": 7, "pickup_enabled": true }
-  ],
-  "related": [
-    { "product_id": "MN-MON-0013", "name": "…", "relation_type": "alternative_to", "strength": 0.82 }
-  ]
+  "specifications": [ { "group": "Display", "name": "Screen Size", "value": "24", "unit": "in" } ],
+  "availability": [ { "warehouse_id": "WH-MVD-CEN", "warehouse_name": "MercaNova Centro", "city": "Montevideo", "available_qty": 7, "pickup_enabled": true } ],
+  "related": [ { "product_id": "MN-MON-0013", "name": "…", "relation_type": "alternative_to", "strength": 0.82 } ]
 }
 ```
 
-### Cart
+### Carrito
+
 ```json
 {
   "items": [
@@ -95,111 +96,109 @@ Every non-2xx response has this shape:
 }
 ```
 
-### Order
+### Orden
+
 ```json
 {
   "order_id": "ORD-20261112-0001",
-  "status": "pending_confirmation | confirmed | cancelled",
+  "status": "pending_confirmation",
   "created_at": "2026-11-12T22:00:00Z",
   "confirmed_at": null,
-  "expires_at": "2026-11-12T22:15:00Z",
   "customer": { "name": "Ana Pérez", "email": "ana@example.com", "address": "Av. 18 de Julio 1234, Montevideo" },
-  "delivery": { "method": "pickup | shipping", "warehouse_id": "WH-MVD-CEN" },
+  "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" },
   "items": [ { "product_id": "MN-MON-0001", "name": "…", "unit_price": 468.62, "quantity": 2, "line_total": 937.24 } ],
   "total": 937.24,
   "currency": "USD"
 }
 ```
-`unit_price` is frozen when the draft is created (see ADR on new entities).
 
----
+- `status` puede ser `pending_confirmation` (creada y esperando que el usuario confirme), `confirmed` (compra registrada) o `cancelled`.
+- `delivery.method` es `pickup` (retiro en un depósito, indicado en `warehouse_id`) o `shipping` (envío a `customer.address`).
+- `unit_price` guarda el precio de cada producto en el momento de la compra. Si el precio cambia después, la orden confirmada mantiene el que pagó el usuario.
 
 ## 3. Endpoints
 
-### Health and reference data
-| Method | Path | Response |
-|---|---|---|
-| GET | `/api/health` | `{ "status": "ok", "db": "ok", "llm": "ok \| down", "stt": "ok \| down" }` |
-| GET | `/api/categories` | `[{ "category": "Monitors", "subcategories": ["Office", "Gaming"] }]` |
-| GET | `/api/warehouses` | `[{ "warehouse_id", "warehouse_name", "city", "pickup_enabled", "shipping_enabled" }]` |
+### Estado y datos de referencia
 
-### Catalog (RF-01)
-| Method | Path | Notes |
+| Método | Ruta | Devuelve |
 |---|---|---|
-| GET | `/api/products` | Query: `q` (plain text, not semantic), `category`, `subcategory`, `brand`, `min_price`, `max_price`, `in_stock` (bool), `sort` (`price_asc`, `price_desc`, `rating`), `page` (1), `page_size` (20, max 100). Response: `{ "items": [ProductSummary], "page", "page_size", "total" }` |
-| GET | `/api/products/{product_id}` | `ProductDetail` · 404 `PRODUCT_NOT_FOUND` |
-| GET | `/api/products/compare?ids=A,B,C` | 2–4 ids. `{ "products": [ProductDetail], "attributes": [{ "group", "name", "unit", "values": { "A": "…", "B": "…" } }] }` (RF-06) |
+| GET | `/api/health` | Si cada servicio está funcionando: `{ "status": "ok", "db": "ok", "llm": "ok", "stt": "down" }` |
+| GET | `/api/categories` | Categorías con sus subcategorías, para los filtros |
+| GET | `/api/warehouses` | Los depósitos y si permiten retiro o envío |
 
-### Cart (RF-09, RF-10)
-| Method | Path | Body | Response |
+### Catálogo (RF-01: consultar y ver los productos)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/products` | Lista paginada de productos (versión resumida). Filtros opcionales: texto `q`, `category`, `subcategory`, `brand`, `min_price`, `max_price`, `in_stock`. Orden con `sort`: `price_asc`, `price_desc` o `rating`. Paginación con `page` y `page_size` (20 por defecto, máximo 100). Devuelve `{ "items": [...], "page", "page_size", "total" }`. |
+| GET | `/api/products/{product_id}` | Detalle de un producto. |
+| GET | `/api/products/compare?ids=A,B,C` | Compara de 2 a 4 productos (RF-06). Devuelve los productos y una tabla de atributos con el valor de cada uno: `{ "products": [...], "attributes": [{ "group", "name", "unit", "values": { "A": "…", "B": "…" } }] }`. |
+
+### Carrito (RF-09: agregar, quitar, cambiar cantidades y ver el total · RF-10: no permitir más de lo disponible)
+
+| Método | Ruta | Envía | Devuelve |
 |---|---|---|---|
-| GET | `/api/cart` | – | `Cart` |
-| POST | `/api/cart/items` | `{ "product_id", "quantity" }` (adds to existing quantity) | `Cart` · 409 `INSUFFICIENT_STOCK` / `PRODUCT_INACTIVE` |
-| PATCH | `/api/cart/items/{product_id}` | `{ "quantity" }` (≥ 1) | `Cart` · 409 `INSUFFICIENT_STOCK` |
-| DELETE | `/api/cart/items/{product_id}` | – | `Cart` |
-| DELETE | `/api/cart` | – | empty `Cart` |
+| GET | `/api/cart` | – | El carrito |
+| POST | `/api/cart/items` | `{ "product_id", "quantity" }`. Si el producto ya estaba, suma la cantidad. | El carrito actualizado. Error `INSUFFICIENT_STOCK` o `PRODUCT_INACTIVE` |
+| PATCH | `/api/cart/items/{product_id}` | `{ "quantity" }` (mínimo 1) | El carrito actualizado. Error `INSUFFICIENT_STOCK` |
+| DELETE | `/api/cart/items/{product_id}` | – | El carrito sin ese producto |
+| DELETE | `/api/cart` | – | El carrito vacío |
 
-The cart **does not reserve stock**. Availability is validated when adding/updating and again on confirm.
+Agregar al carrito **no reserva stock**: solo verifica que haya suficiente en ese momento. El stock se descuenta recién cuando la compra se confirma.
 
-### Checkout and orders (RF-11..RF-16)
-| Method | Path | Body | Response |
+### Compra (RF-11 a RF-16: checkout, confirmación, compra ficticia, orden, actualización de stock e historial)
+
+La compra se hace en **dos pasos**. Así la letra se cumple de forma verificable: ninguna compra se registra sin confirmación explícita del usuario (RF-12).
+
+| Método | Ruta | Envía | Devuelve |
 |---|---|---|---|
-| POST | `/api/checkout` | `{ "customer": { "name", "email", "address" }, "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" } }` or `{ …, "delivery": { "method": "shipping" } }` (shipping uses `customer.address`). All three customer fields are required (RF-11: minimum data to simulate a purchase). | `201 Order` with `status = pending_confirmation`. Validates stock, freezes prices, **does not touch stock**. 409 `CART_EMPTY` / `INSUFFICIENT_STOCK` |
-| POST | `/api/orders/{order_id}/confirm` | – | `Order` with `status = confirmed`. In one transaction: re-validate and decrement stock (row lock), empty the cart. 409 `INSUFFICIENT_STOCK` / `ORDER_NOT_PENDING`, 410 `ORDER_DRAFT_EXPIRED` |
-| POST | `/api/orders/{order_id}/cancel` | – | `Order` with `status = cancelled` |
-| GET | `/api/orders` | – | `[Order]` of the session, newest first |
-| GET | `/api/orders/{order_id}` | – | `Order` |
+| POST | `/api/checkout` | `{ "customer": { "name", "email", "address" }, "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" } }`, o con `"method": "shipping"` para enviar a la dirección del cliente. Los tres datos del cliente son obligatorios. | **Paso 1.** Una orden en estado `pending_confirmation`, con los precios del momento. Verifica que haya stock, pero **no lo descuenta**. Errores: `CART_EMPTY`, `INSUFFICIENT_STOCK` |
+| POST | `/api/orders/{order_id}/confirm` | – | **Paso 2.** La orden en estado `confirmed`. Errores: `INSUFFICIENT_STOCK`, `PRICE_CHANGED`, `ORDER_NOT_PENDING` |
+| POST | `/api/orders/{order_id}/cancel` | – | La orden en estado `cancelled` |
+| GET | `/api/orders` | – | Las órdenes de la sesión, de la más nueva a la más vieja |
+| GET | `/api/orders/{order_id}` | – | Una orden |
 
-No payment data is collected (RF-13). Stock allocation: `pickup` decrements the chosen warehouse; `shipping` decrements warehouses in order of highest availability (see ADR to be written in BE-03).
+**Qué pasa al confirmar (paso 2).** Todo ocurre dentro de una única transacción de la base de datos, así que o se hace completo o no se hace nada:
 
-**Explicit confirmation (RF-12):** only `POST /orders/{id}/confirm` places an order, and only the frontend calls it after the user clicks "Confirmar compra". The assistant never calls it.
+1. Bloquea las filas de stock de los productos de la orden, para que dos compras simultáneas no vendan la misma unidad.
+2. Vuelve a verificar que haya stock suficiente. Si no alcanza, responde `INSUFFICIENT_STOCK` con la cantidad disponible.
+3. Vuelve a verificar que el precio no haya cambiado desde el paso 1. Si cambió, responde `PRICE_CHANGED` con el precio nuevo. El frontend se lo muestra al usuario y le ofrece armar la orden otra vez.
+4. Descuenta el stock (RF-15). Para retiro, descuenta del depósito elegido. Para envío, del depósito con más unidades disponibles y, si no alcanza, sigue con el siguiente.
+5. Marca la orden como `confirmed`, guarda la fecha y vacía el carrito.
 
-### Assistant (RF-02..RF-08, RF-17, RF-18)
+**Por qué las órdenes pendientes no vencen.** Al principio consideramos que una orden sin confirmar venciera a los 15 minutos. Lo descartamos porque el riesgo que cubría, confirmar con un precio o un stock viejos, ya queda cubierto al **revalidar todo al confirmar** (pasos 2 y 3). Comparado con un vencimiento por tiempo:
 
-#### POST `/api/chat`
-Request:
+- **Es más simple:** no hay que programar tareas que expiren órdenes, ni manejar un estado "vencida", ni elegir un tiempo arbitrario.
+- **Es más correcto:** un vencimiento solo reduce la probabilidad de usar datos viejos. Revalidar al confirmar la elimina, porque siempre se compara contra el estado actual de la base.
+- **Es mejor para el usuario:** si tarda en decidirse, no pierde la orden. Solo se le avisa si algo cambió.
+
+El costo es que pueden quedar órdenes pendientes que nadie confirma. En el prototipo no afecta nada, porque no reservan stock. En producción se limpiarían con una tarea periódica.
+
+No se piden ni se guardan datos de tarjeta: la compra es ficticia (RF-13). **El asistente nunca confirma una compra.** Solo el frontend llama al paso 2, cuando el usuario hace clic en "Confirmar compra".
+
+### Asistente (RF-02 a RF-08: búsqueda en lenguaje natural, conversación, recomendaciones, aclaraciones, comparación, información actual y voz)
+
+#### POST `/api/chat/stream` — respuesta en tiempo real (la que usa el frontend)
+
+Envía:
 ```json
-{ "message": "Necesito auriculares para videollamadas, máximo USD 200", "conversation_id": null, "input_mode": "text | voice" }
+{ "message": "Necesito auriculares para videollamadas, máximo USD 200", "conversation_id": null, "input_mode": "text" }
 ```
-Response `200`:
-```json
-{
-  "conversation_id": "c1f0…",
-  "reply": "Te recomiendo estas tres opciones…",
-  "blocks": [ Block ],
-  "tools_used": [ { "name": "search_products", "args": { "query": "…", "max_price": 200 } }, { "name": "get_stock", "args": { "product_id": "…" } } ]
-}
-```
-`tools_used` is shown in a collapsible "cómo lo resolví" panel (useful for the demo and the defense).
+- `conversation_id` va en `null` en el primer mensaje. Después se manda el que devolvió el servidor, para que el asistente recuerde la conversación.
+- `input_mode` es `text` o `voice`. Solo se guarda como dato: el asistente responde igual en los dos casos.
 
-**Block types** (the frontend renders one component per type):
+Devuelve una secuencia de eventos (*Server-Sent Events*). Así el usuario ve la respuesta mientras se escribe y sabe qué está haciendo el asistente, en lugar de esperar varios segundos frente a una pantalla quieta. Como el pedido es un POST, el frontend lo lee con `fetch` y no con `EventSource`.
 
-| type | Payload | Rendered as |
+| Evento | Contenido | Qué hace el frontend |
 |---|---|---|
-| `product_recommendations` | `{ "items": [ { "product": ProductSummary, "reason": "Cancelación de ruido y micrófono boom, ideal para llamadas." } ] }` | Product cards with reason + "Agregar al carrito" (RF-04) |
-| `comparison` | Same shape as `/api/products/compare` | Comparison table (RF-06) |
-| `clarification` | `{ "question": "¿Para qué lo vas a usar?", "options": ["Trabajo", "Gaming", "Diseño"] }` | Quick-reply chips (RF-05) |
-| `cart_updated` | `{ "cart": Cart }` | Toast + refreshes cart badge |
-| `checkout_draft` | `{ "order": Order }` | Opens the **confirmation modal** (RF-12) |
-| `not_found` | `{ "query": "PlayStation 9" }` | Inline notice (RF-18) |
+| `meta` | `{ "conversation_id": "c1f0…" }` | Guarda el identificador de la conversación |
+| `tool_call` | `{ "name": "search_products", "args": { … } }` | Muestra qué está haciendo: "Buscando productos…", "Consultando stock…" |
+| `token` | `{ "text": "Te recom" }` | Agrega el texto a la burbuja del asistente |
+| `block` | Un bloque (ver tabla de bloques) | Muestra tarjetas, una tabla o la ventana de confirmación |
+| `done` | `{ "reply": "texto completo", "tools_used": [ … ] }` | Cierra la respuesta |
+| `error` | `{ "error": { "code": "LLM_UNAVAILABLE", "message": "…" } }` | Muestra el mensaje. El resto de la tienda sigue funcionando (RNF-04) |
 
-Errors: 503 `LLM_UNAVAILABLE` (the UI shows a message and the rest of the app keeps working, RNF-04).
-
-#### POST `/api/chat/stream` (Server-Sent Events)
-Same request body as `/api/chat`. Response `Content-Type: text/event-stream`. The frontend uses it by default and falls back to `/api/chat` if the stream fails. Because it is a POST, the frontend reads it with `fetch` + `ReadableStream` (not `EventSource`).
-
-Events, in order:
-
-| event | data | Use in the UI |
-|---|---|---|
-| `meta` | `{ "conversation_id": "c1f0…" }` | Store the conversation id |
-| `tool_call` | `{ "name": "search_products", "args": { … } }` | Status line: "Buscando productos…", "Consultando stock…" |
-| `token` | `{ "text": "Te recom" }` | Append to the assistant bubble |
-| `block` | `Block` (same types as `/api/chat`) | Render the card/table/modal |
-| `done` | `{ "reply": "…full text…", "tools_used": [ … ] }` | Close the bubble |
-| `error` | `{ "error": { "code": "LLM_UNAVAILABLE", "message": "…" } }` | Show the message; the stream ends |
-
-Example:
+Ejemplo:
 ```
 event: meta
 data: {"conversation_id":"c1f0"}
@@ -217,20 +216,47 @@ event: done
 data: {"reply":"Te recomiendo estas tres opciones…","tools_used":[…]}
 ```
 
-`block` events are emitted only after the tools that back them have returned, so a card never shows a price that was not read from the database in that turn (RF-07, RF-18).
+Un evento `block` solo se envía después de que terminaron las herramientas que lo respaldan. Así una tarjeta nunca muestra un precio que no se leyó de la base en ese mismo turno (RF-07 y RF-18: no inventar información).
+
+#### POST `/api/chat` — misma respuesta, completa de una vez
+
+Recibe lo mismo que `/api/chat/stream` y devuelve todo junto cuando termina:
+```json
+{ "conversation_id": "c1f0…", "reply": "Te recomiendo estas tres opciones…", "blocks": [ … ], "tools_used": [ { "name": "search_products", "args": { … } } ] }
+```
+El frontend lo usa como alternativa si la conexión en tiempo real falla. También sirve para los tests automáticos.
+
+#### Bloques que puede devolver el asistente
+
+El frontend tiene un componente visual para cada tipo de bloque.
+
+| `type` | Contenido | Cómo se muestra |
+|---|---|---|
+| `product_recommendations` | `{ "items": [ { "product": <producto resumido>, "reason": "Tiene cancelación de ruido y micrófono, ideal para llamadas." } ] }` | Tarjetas de producto con el motivo de la recomendación y un botón "Agregar al carrito" (RF-04) |
+| `comparison` | Igual que la respuesta de `/api/products/compare` | Tabla comparativa (RF-06) |
+| `clarification` | `{ "question": "¿Para qué lo vas a usar?", "options": ["Trabajo", "Gaming", "Diseño"] }` | La pregunta con botones de respuesta rápida (RF-05) |
+| `cart_updated` | `{ "cart": <carrito> }` | Aviso breve y actualización del ícono del carrito |
+| `checkout_draft` | `{ "order": <orden pendiente> }` | Abre la ventana de confirmación de compra (RF-12) |
+| `not_found` | `{ "query": "PlayStation 9" }` | Aviso de que eso no está en el catálogo (RF-18) |
+
+`tools_used` lista las herramientas que usó el asistente para responder. El frontend las muestra en un panel desplegable, "Cómo lo resolví". Sirve para la demostración y para explicar el funcionamiento en la defensa.
 
 #### GET `/api/chat/{conversation_id}`
-`{ "conversation_id", "messages": [ { "role": "user | assistant", "content", "blocks", "created_at" } ] }`, used to restore the chat after a reload.
 
-#### POST `/api/transcribe` (RF-08)
-`multipart/form-data` with field `audio` (webm/ogg/wav, max 60 s, max 10 MB).
-Response: `{ "text": "necesito auriculares…", "language": "es", "duration_s": 4.2 }` · 422 `AUDIO_UNREADABLE`, 503 `STT_UNAVAILABLE`.
-The frontend then calls `/api/chat` with that text and `input_mode = "voice"`.
+Devuelve los mensajes de una conversación, para restaurar el chat si el usuario recarga la página: `{ "conversation_id", "messages": [ { "role": "user", "content", "blocks", "created_at" } ] }`.
 
----
+#### POST `/api/transcribe` — voz a texto (RF-08)
 
-## 4. Open questions for review
+Recibe el audio grabado en el navegador como `multipart/form-data`, en el campo `audio`. Formatos webm, ogg o wav, de hasta 60 segundos y 10 MB.
 
-1. ~~Streaming~~ → resolved: SSE via `/api/chat/stream`, with `/api/chat` as fallback.
-2. Draft expiration of 15 minutes: pending.
-3. ~~Customer fields~~ → resolved: `name`, `email`, `address` (the assignment asks for nothing more).
+Devuelve `{ "text": "necesito auriculares…", "language": "es", "duration_s": 4.2 }`. Errores: `AUDIO_UNREADABLE`, `STT_UNAVAILABLE`.
+
+Con ese texto, el frontend llama a `/api/chat/stream` con `input_mode: "voice"`. Desde ahí la consulta sigue el mismo camino que una escrita, como pide la letra.
+
+## 4. Decisiones tomadas en la revisión
+
+| Tema | Decisión |
+|---|---|
+| Respuesta del chat | Tiempo real con *Server-Sent Events* (`/api/chat/stream`), con `/api/chat` como alternativa |
+| Datos del cliente | Nombre, email y dirección. La letra pide "los datos mínimos necesarios para simular una compra" (RF-11) |
+| Vencimiento de órdenes pendientes | No vencen. Se revalida stock y precio al confirmar (ver la sección de compra) |
