@@ -1,4 +1,5 @@
-# Local runtime. The frontend service is added by task FE-01.
+# Services: db (PostgreSQL + pgvector), ollama (local LLM) and frontend (Vite dev server).
+# The backend service is added together with the catalog API; the frontend proxies /api to it.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -22,21 +23,16 @@ services:
     volumes:
       - ollama_data:/root/.ollama
 
-  backend:
-    build: ./backend
-    depends_on:
-      db:
-        condition: service_healthy
+  frontend:
+    build: ./frontend
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      DATASET_PATH: ${DATASET_PATH:-/data/MercaNova_dataset_obligatorio_2.xlsx}
+      VITE_API_PROXY_TARGET: http://backend:8000
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "5173:5173"
     volumes:
-      - ./backend:/app
-      # Course dataset (not versioned): copy the Excel into ./data before `make seed`.
-      - ./data:/data:ro
+      # Source mounted for hot reload; the anonymous volume keeps the image's node_modules.
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   db_data:
