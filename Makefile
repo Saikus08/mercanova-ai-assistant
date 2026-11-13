@@ -1,4 +1,4 @@
-.PHONY: up down logs pull-models seed test test-backend test-frontend
+.PHONY: up down logs migrate pull-models seed test test-backend test-frontend
 
 up:            ## Start all services
 	docker compose up -d --build
@@ -9,8 +9,11 @@ down:          ## Stop all services
 logs:
 	docker compose logs -f
 
+migrate:       ## Apply database migrations (Alembic) up to the latest revision
+	docker compose exec backend alembic upgrade head
+
 pull-models:   ## Download LLM and embedding models into Ollama
-	docker compose exec ollama ollama pull $${LLM_MODEL:-qwen2.5:7b}
+	docker compose exec ollama ollama pull $${LLM_MODEL:-qwen3:8b}
 	docker compose exec ollama ollama pull $${EMBEDDING_MODEL:-nomic-embed-text}
 
 seed:          ## Load the dataset into PostgreSQL and build embeddings (tasks DB-02 / AI-01)

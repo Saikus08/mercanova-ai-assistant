@@ -18,9 +18,12 @@ Requisitos: Docker Desktop con al menos 8 GB de memoria asignada.
 ```bash
 cp .env.example .env     # configuración local; los valores por defecto funcionan
 make up                  # levanta todos los servicios
+make migrate             # crea las tablas en la base
 make pull-models         # descarga el modelo de lenguaje y el de embeddings (solo la primera vez)
-make seed                # carga el catálogo en la base y genera los embeddings
+make seed                # carga el catálogo en la base
 ```
+
+Antes de `make seed` hay que copiar el Excel de la cátedra (`MercaNova_dataset_obligatorio_2.xlsx`) en la carpeta `data/` de la raíz. El archivo no se guarda en el repositorio. El detalle de qué valida la carga está en `backend/README.md`, sección "Cargar el catálogo".
 
 > **Estado actual:** hoy el compose levanta solo la base de datos y Ollama. Esta sección se completa cuando estén el backend y el frontend.
 

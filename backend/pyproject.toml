@@ -1,0 +1,18 @@
+[project]
+name = "mercanova-backend"
+version = "0.1.0"
+description = "MercaNova AI shopping assistant backend (FastAPI, hexagonal architecture)."
+requires-python = ">=3.12"
+# Runtime and dev dependencies are pinned in requirements.txt / requirements-dev.txt.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "integration: needs the PostgreSQL service from docker compose",
+]
+filterwarnings = [
+    # Starlette 1.x prefers the `httpx2` fork for its TestClient; `httpx` still works.
+    # Switching the test dependency is tracked as a follow-up decision.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:starlette.exceptions.StarletteDeprecationWarning",
+]

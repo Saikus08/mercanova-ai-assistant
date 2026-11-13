@@ -12,5 +12,5 @@ dist/
 .DS_Store
 *.log
 # Runtime artifacts
-models/
+/models/
 data/*.xlsx
