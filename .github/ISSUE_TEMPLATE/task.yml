@@ -1,24 +1,41 @@
-name: Task
-description: A unit of work from the action plan
+name: Tarea
+description: Una unidad de trabajo del plan. También es el pedido que se le pasa al coding agent.
 title: "[ID] "
 body:
-  - type: input
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Qué existe hoy y por qué hace falta esta tarea.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Qué hay que hacer
+    validations:
+      required: true
+  - type: textarea
     id: covers
     attributes:
-      label: Covers (RF/RNF/rubric)
-      placeholder: RF-09, RF-10
+      label: Para qué sirve
+      description: Requerimiento de la letra explicado (por ejemplo, "Confirmación de compra (RF-12)") y puntos de la rúbrica.
   - type: textarea
-    id: spec
+    id: out_of_scope
     attributes:
-      label: Spec and acceptance criteria
+      label: Fuera de alcance / qué no tocar
+      description: Archivos, módulos o comportamientos que esta tarea no debe modificar.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Está terminado cuando
+      placeholder: "- [ ] ..."
     validations:
       required: true
   - type: textarea
     id: agent
     attributes:
-      label: Coding agent prompt / skill to use
-      placeholder: Use skill backend-feature. Implement ...
-  - type: textarea
-    id: tests
-    attributes:
-      label: How it will be tested
+      label: Cómo se trabaja
+      description: Skill del coding agent a usar, cómo se testea y quién revisa el PR.
