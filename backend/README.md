@@ -13,7 +13,9 @@ backend/
 │   ├── application/       Casos de uso y puertos (interfaces que implementan los adaptadores)
 │   ├── adapters/
 │   │   ├── api/           Rutas HTTP de FastAPI
-│   │   └── persistence/   Modelos de tablas (SQLAlchemy), sesión de base de datos
+│   │   ├── dataset/       Lectura y validación del Excel de la cátedra
+│   │   └── persistence/   Modelos de tablas (SQLAlchemy), sesión de base de datos, carga del catálogo
+│   ├── scripts/           Scripts de consola (carga del catálogo)
 │   ├── config.py          Configuración leída de variables de entorno
 │   └── main.py            Crea la aplicación FastAPI
 ├── migrations/            Migraciones de Alembic (cambios de esquema versionados)
@@ -34,6 +36,7 @@ El modelo de datos, con el diagrama de tablas, está en `docs/diagrams/modelo-de
 |---|---|---|
 | `DATABASE_URL` | Conexión a PostgreSQL, con el driver psycopg 3 | `postgresql+psycopg://<POSTGRES_USER>:<POSTGRES_PASSWORD>@db:5432/<POSTGRES_DB>` |
 | `OLLAMA_BASE_URL` | Dirección del servidor de modelos de lenguaje | `http://ollama:11434` |
+| `DATASET_PATH` | Ruta del Excel de la cátedra dentro del contenedor | `/data/MercaNova_dataset_obligatorio_2.xlsx` |
 | `TEST_DATABASE_NAME` | Nombre de la base que crean los tests (opcional) | `mercanova_test` |
 
 Docker Compose arma `DATABASE_URL` a partir de `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`. Si la contraseña tiene caracteres especiales como `@`, `:` o `/`, hay que escribirlos codificados para URL (por ejemplo `@` como `%40`).
@@ -51,6 +54,53 @@ curl localhost:8000/api/health            # {"status":"ok","db":"ok","llm":"unkn
 El código se monta dentro del contenedor y uvicorn se reinicia solo al guardar un archivo. La documentación interactiva de la API queda en `http://localhost:8000/docs`.
 
 `/api/health` responde siempre con `status: "ok"` mientras la API funcione, e informa el estado de cada servicio por separado. Si la base no responde, devuelve `db: "down"` en lugar de un error. Los campos `llm` y `stt` valen `"unknown"` hasta que se agreguen esos servicios.
+
+## Cargar el catálogo
+
+El catálogo sale del Excel que entrega la cátedra (`MercaNova_dataset_obligatorio_2.xlsx`). El archivo no se guarda en el repositorio: cada persona lo copia en la carpeta `data/` de la raíz. Docker Compose monta esa carpeta en el contenedor del backend como `/data`, en modo solo lectura.
+
+```bash
+cp <ruta-al-excel>/MercaNova_dataset_obligatorio_2.xlsx data/
+make migrate      # las tablas tienen que existir antes de cargar
+make seed         # o: docker compose exec backend python -m app.scripts.seed
+```
+
+El script lee las ocho hojas del Excel: marcas, categorías, depósitos, productos, especificaciones, relaciones entre productos, precios y stock. Valida cada fila antes de escribirla:
+
+- Los campos obligatorios tienen valor y cada columna tiene el tipo esperado (número, fecha, sí/no).
+- Las columnas con listas (`recommended_for`, `not_recommended_for`, `key_features`, `tags`) se separan por `;` y se quitan los espacios sobrantes.
+- Los rangos son válidos: precios mayores o iguales a 0, descuento entre 0 y 100, cantidades de stock mayores o iguales a 0, calificación entre 0 y 5, fuerza de una relación entre 0 y 1.
+- Las referencias existen: la marca y la categoría de cada producto, el producto de cada precio, stock, especificación o relación, y el depósito de cada fila de stock. La categoría del producto se busca por el par categoría y subcategoría.
+- No hay claves repetidas, por ejemplo dos productos con el mismo `product_id` o el mismo `sku`.
+
+Una fila inválida no se carga. El script la informa con la hoja, el número de fila del Excel y el motivo, y sigue con las demás. Si se rechaza un producto, también se rechazan sus precios, su stock y sus especificaciones. Al terminar muestra un resumen por hoja:
+
+```
+INFO Loading /data/MercaNova_dataset_obligatorio_2.xlsx
+Sheet               Read  Loaded  Rejected
+Brands                20      20         0
+Categories            37      37         0
+Warehouses             5       5         0
+Products             360     360         0
+Specifications      3000    3000         0
+Relations           1080    1080         0
+Pricing              360     360         0
+Inventory           1800    1800         0
+```
+
+Con el Excel actual de la cátedra no se rechaza ninguna fila. Un rechazo se ve así:
+
+```
+WARNING Rejected Products row 4: rating: Input should be less than or equal to 5 (got '7.5')
+```
+
+**Se puede correr más de una vez.** Cada fila se inserta o, si ya existe, se actualiza (`INSERT ... ON CONFLICT DO UPDATE` sobre la clave de cada tabla). Correrlo dos veces con el mismo archivo deja los mismos datos. Si el Excel cambia, se actualizan las filas que ya estaban. Las filas que se borren del Excel no se borran de la base.
+
+**Todo o nada.** La carga completa corre en una sola transacción. Si algo inesperado falla a mitad de camino, por ejemplo la base rechaza una fila, no queda nada cargado a medias.
+
+El script solo escribe las tablas del catálogo, de precios y de stock. No toca carritos, órdenes, conversaciones ni embeddings.
+
+Las fechas del Excel no tienen zona horaria; se guardan como hora UTC.
 
 ## Migraciones
 
