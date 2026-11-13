@@ -1,4 +1,4 @@
-# Infrastructure services. Backend and frontend services are added by tasks BE-01 and FE-01.
+# Local runtime. The frontend service is added by task FE-01.
 services:
   db:
     image: pgvector/pgvector:pg16
@@ -21,6 +21,19 @@ services:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
       - ollama_data:/root/.ollama
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
 
 volumes:
   db_data:
