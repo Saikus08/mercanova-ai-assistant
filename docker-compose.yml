@@ -30,10 +30,13 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      DATASET_PATH: ${DATASET_PATH:-/data/MercaNova_dataset_obligatorio_2.xlsx}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
+      # Course dataset (not versioned): copy the Excel into ./data before `make seed`.
+      - ./data:/data:ro
 
 volumes:
   db_data:
