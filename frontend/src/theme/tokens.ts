@@ -142,6 +142,12 @@ export const size = {
   iconLg: '40px',
   modalWidth: '520px',
   contentMaxWidth: '1200px',
+  /** Catalog layout: filters column, minimum width of the results column and of a product card. */
+  filtersWidth: '260px',
+  resultsMinWidth: '480px',
+  productCardMinWidth: '220px',
+  /** Product image in the detail screen. */
+  detailImageWidth: '480px',
 } as const
 
 export const zIndex = {

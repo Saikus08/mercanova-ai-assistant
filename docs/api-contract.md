@@ -126,6 +126,16 @@ Incluye todo lo anterior y además:
 | GET | `/api/categories` | Categorías con sus subcategorías, para los filtros |
 | GET | `/api/warehouses` | Los depósitos y si permiten retiro o envío |
 
+`/api/categories` devuelve una lista con una entrada por categoría y sus subcategorías, en el orden en que se muestran en los filtros:
+
+```json
+[
+  { "category": "Monitors", "subcategories": ["Gaming", "Office"] }
+]
+```
+
+Los nombres son los mismos que aparecen en `category` y `subcategory` de cada producto, así el frontend los manda tal cual como filtro a `/api/products`.
+
 ### Catálogo (RF-01: consultar y ver los productos)
 
 | Método | Ruta | Descripción |
