@@ -61,15 +61,16 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
    - Retrieved text (RAG) is wrapped as data, never followed as instructions (prompt injection).
    - Output: every price, stock figure and product id in the answer must come from a tool result of the current turn.
    - Personal data from checkout (name, email, address) never goes into prompts or logs.
-8. **Prompting.** Low temperature, a system prompt with role, criteria and restrictions, and 2–3 few-shot examples (clarification, product not found).
-9. **Observability.** Every chat turn has a trace id. Each step logs tool, arguments without personal data, duration, tokens and outcome.
-10. **Evaluation.** Agent changes are checked against `docs/use-cases.md` with per-metric scores: task success, tool accuracy, grounding, cost and latency.
+8. **Search language.** The `query` argument of `search_products` is always written by the model in English, describing the product need. Price and stock never go in the query.
+9. **Prompting.** Low temperature, a system prompt with role, criteria and restrictions, and 2–3 few-shot examples (clarification, product not found).
+10. **Observability.** Every chat turn has a trace id. Each step logs tool, arguments without personal data, duration, tokens and outcome.
+11. **Evaluation.** Agent changes are checked against `docs/use-cases.md` with per-metric scores: task success, tool accuracy, grounding, cost and latency.
 
 ## Coding agent workflow
 
 - **Tickets.** Every task given to a coding agent states context, goal, scope, **what is out of scope / must not be touched**, constraints and acceptance criteria (see the issue template).
 - **Hooks.** `.claude/settings.json` runs `.claude/hooks/guard.py` before every edit or shell command. It blocks writing secret files, committing or pushing on `main`, force pushes and committing the dataset. Do not disable it to get around a block; fix the cause.
-- **Review questions** in addition to the `code-review` skill: Did the agent invent architecture or data? Is there unnecessary complexity? Are the touched files reasonable for the ticket? Is the diff small enough to review? Would you merge it without reading it? If yes, read it.
+- **Review questions** in addition to the `code-review` skill: Did the agent invent architecture or data? Is there unnecessary complexity? Are the touched files reasonable for the ticket? Is the diff small enough to review? Would you merge it without reading it? If yes, read it. Does a new or changed flow have its diagram in `docs/diagrams/` in the same PR?
 - Coding-agent skills (`.claude/skills/`) are procedures for building the project. They are not the assistant's tools.
 
 ## Configuration and secrets
@@ -82,9 +83,10 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 1. Every change starts from a GitHub issue (task ID like `BE-02`, `AI-03`).
 2. Branch: `<type>/<task-id>-short-description` (e.g. `feat/be-02-cart-domain`).
 3. Commits: Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`), referencing the issue (`feat(cart): add quantity update (#12)`). No AI attribution trailers.
-4. Open a PR using the template. **The other team member reviews** using the `code-review` skill. No self-merge.
-5. A PR is mergeable only with tests passing and the PR checklist complete.
+4. Open a PR using the template. **The other team member reviews** using the `code-review` skill. No self-merge. The PR title and description are written in neutral Spanish; only the Conventional Commits prefix (e.g. `feat(catalog):`) stays in English.
+5. A PR is mergeable only with tests passing and the PR checklist complete. The CI check shown in the PR must be green. The repository plan cannot enforce it, so the reviewer verifies it before approving.
 6. When an architectural decision is made, add an ADR in `docs/decisions/` using `0000-template.md`.
+7. When a change adds or modifies a flow (endpoint, use case, agent step), the same PR creates or updates its Mermaid diagram in `docs/diagrams/`, showing what is implemented. This builds the sequence diagrams the report needs as the project grows.
 
 ## Testing
 
@@ -92,6 +94,10 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 - Frontend: Vitest + Testing Library for components and critical flows.
 - Commands: `make test` (all), `make test-backend`, `make test-frontend`.
 - Every bug fix includes a test that reproduces it.
+
+## Linting
+
+Backend: `ruff check` (config in `backend/pyproject.toml`). Frontend: `oxlint` and `tsc`. `make lint` runs both. `.pre-commit-config.yaml` runs them on commit (tests on push) and CI repeats them, so run `pre-commit install` once after cloning.
 
 ## Skills
 
@@ -104,7 +110,7 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 
 ## Language
 
-Code, identifiers, comments and commit messages in English. User-facing UI copy and assistant replies in Spanish (Rioplatense neutral). Documentation for reviewers (`docs/`, README, issues, PR descriptions) in neutral Spanish.
+Code, identifiers, comments, commit messages and file and folder names (including `docs/diagrams/` and `docs/decisions/` files) in English. User-facing UI copy and assistant replies in Spanish (Rioplatense neutral). Documentation for reviewers (`docs/`, README, issues, PR descriptions) in neutral Spanish.
 
 ## Documentation rules
 

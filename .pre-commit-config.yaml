@@ -1,0 +1,29 @@
+# Install once with `pip install pre-commit && pre-commit install --install-hooks`
+# (pre-commit and pre-push hooks). CI runs the same checks.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.5
+    hooks:
+      - id: ruff
+        files: ^backend/
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend lint (oxlint)
+        entry: npm --prefix frontend run lint
+        language: system
+        files: ^frontend/src/
+        pass_filenames: false
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: npm --prefix frontend run typecheck
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+      - id: frontend-tests
+        name: frontend tests
+        entry: npm --prefix frontend test -- --run
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+        stages: [pre-push]

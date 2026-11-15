@@ -4,9 +4,12 @@ from collections.abc import Iterator
 
 import pytest
 from alembic import command
+from fastapi.testclient import TestClient
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
+from app.adapters.persistence.session import get_session
+from app.main import app
 from tests.integration.db_utils import (
     TEST_DATABASE_NAME,
     alembic_config,
@@ -44,3 +47,14 @@ def db_session(migrated_engine: Engine) -> Iterator[Session]:
         session.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture
+def client(db_session: Session) -> Iterator[TestClient]:
+    """API client whose requests run inside the test's rolled-back transaction."""
+    app.dependency_overrides[get_session] = lambda: db_session
+    try:
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()

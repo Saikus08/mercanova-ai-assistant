@@ -214,7 +214,7 @@ event: meta
 data: {"conversation_id":"c1f0"}
 
 event: tool_call
-data: {"name":"search_products","args":{"query":"auriculares videollamadas","max_price":200}}
+data: {"name":"search_products","args":{"query":"comfortable headphones for video calls","max_price":200}}
 
 event: token
 data: {"text":"Te recomiendo"}
@@ -225,6 +225,8 @@ data: {"type":"product_recommendations","items":[…]}
 event: done
 data: {"reply":"Te recomiendo estas tres opciones…","tools_used":[…]}
 ```
+
+El argumento `query` de `search_products` lo escribe el modelo en inglés, a partir del pedido del usuario en español, porque el catálogo está en inglés (ver la decisión 0001, sección "Idioma de la búsqueda"). El precio va en un filtro aparte (`max_price`), nunca dentro de `query`.
 
 Un evento `block` solo se envía después de que terminaron las herramientas que lo respaldan. Así una tarjeta nunca muestra un precio que no se leyó de la base en ese mismo turno (RF-07 y RF-18: no inventar información).
 

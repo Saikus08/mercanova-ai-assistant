@@ -54,6 +54,28 @@ Para comparar modelos en el uso de herramientas, la referencia pública es el *B
 
 **Modelo de embeddings:** `nomic-embed-text`. Pesa 274 MB y corre en Ollama, así que no suma otro servicio. Según su ficha supera a los modelos de embeddings de OpenAI `ada-002` y `text-embedding-3-small` [6]. Ese dato lo informa el propio autor, no es una medición independiente.
 
+**Idioma de la búsqueda.**
+
+*Problema:* las descripciones del catálogo están en inglés, pero los usuarios escriben y hablan en español (la voz se transcribe con `STT_LANGUAGE=es`). La ficha de `nomic-embed-text` en Ollama no declara soporte multilingüe [6], y la ficha del modelo en Hugging Face lo etiqueta con idioma inglés [12]. Si la consulta se convierte en vector en español y el catálogo en inglés, la búsqueda por significado puede devolver productos menos relevantes.
+
+*Alternativas:*
+
+| Opción | A favor | En contra |
+|---|---|---|
+| Modelo de embeddings multilingüe (`bge-m3` [13] o `nomic-embed-text-v2-moe` [14]) | Compara bien consultas en español con textos en inglés. Ambos declaran soporte para unos 100 idiomas. | Pesan 1,2 GB y 958 MB, frente a 274 MB de `nomic-embed-text`. Compiten por los ~8 GB de RAM con `qwen3:8b` y faster-whisper. Hay que volver a generar los vectores del catálogo. |
+| Traducir la consulta en un paso aparte, antes de buscar | La búsqueda queda en inglés con el modelo liviano. | Suma una llamada al modelo de lenguaje en cada búsqueda, con más latencia y otro punto de falla. |
+| **Que el LLM escriba la query en inglés (elegida)** | La búsqueda queda en inglés con el modelo liviano, sin pasos extra: el modelo ya arma los argumentos de `search_products` en la misma llamada. `qwen3:8b` es multilingüe [3]. | Ver *trade-offs*. |
+
+*Decisión:* el argumento `query` de `search_products` lo escribe el modelo en inglés y describe la necesidad del producto (por ejemplo, `"comfortable headphones for video calls"`). El precio y el stock nunca van dentro de la query: el precio va como filtro aparte y el stock lo lee una herramienta desde la base. La regla queda en `AGENTS.md` (reglas del asistente) y el ejemplo en `docs/api-contract.md`.
+
+*Por qué:* consulta y catálogo quedan en el mismo idioma sin un modelo más pesado ni una llamada extra.
+
+*Trade-offs que aceptamos:*
+- **Depende de que el LLM traduzca bien.** Si traduce mal o deja la query en español, la búsqueda empeora. Lo vamos a medir con los casos de uso del asistente.
+- **Solo cubre las búsquedas que pasan por el agente.** Un buscador de texto libre en el catálogo recibiría el texto del usuario en español, sin traducir. Por eso el catálogo no debe tener búsqueda por texto libre: se navega con filtros (categoría, marca, precio, stock).
+
+**Sin internacionalización (i18n).** La aplicación está solo en español: la interfaz y las respuestas del asistente. El público es uno solo (clientes de MercaNova que hablan español), así que traducir la interfaz a otros idiomas no aporta al prototipo y suma trabajo en cada pantalla. Si en el futuro hiciera falta otro idioma, los textos se pueden extraer a archivos de traducción.
+
 ## 2. Base de datos: PostgreSQL con pgvector
 
 **Qué necesitamos:** guardar productos, precios, stock, carritos y órdenes con **transacciones**, para que dos compras no vendan la misma unidad. También necesitamos **búsqueda por similitud de significado** sobre las descripciones (RAG).
@@ -122,3 +144,6 @@ La letra pide que un docente pueda clonar el repositorio y levantar la solución
 9. FastAPI, documentación oficial: https://fastapi.tiangolo.com/
 10. Vite, documentación oficial: https://vite.dev/guide/
 11. SYSTRAN, faster-whisper (repositorio oficial): https://github.com/SYSTRAN/faster-whisper
+12. Nomic AI, ficha de `nomic-embed-text-v1.5` en Hugging Face: https://huggingface.co/nomic-ai/nomic-embed-text-v1.5
+13. Ollama, ficha de `bge-m3`: https://ollama.com/library/bge-m3
+14. Ollama, ficha de `nomic-embed-text-v2-moe`: https://ollama.com/library/nomic-embed-text-v2-moe

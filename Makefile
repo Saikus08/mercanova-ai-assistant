@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate pull-models seed test test-backend test-frontend
+.PHONY: up down logs migrate pull-models seed test test-backend test-frontend lint
 
 up:            ## Start all services
 	docker compose up -d --build
@@ -26,3 +26,7 @@ test-backend:
 
 test-frontend:
 	cd frontend && npm test -- --run
+
+lint:          ## Same checks as the CI lint steps
+	docker compose exec backend ruff check .
+	cd frontend && npm run lint && npm run typecheck
