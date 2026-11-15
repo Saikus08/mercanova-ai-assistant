@@ -122,7 +122,8 @@ def test_order_allocation_rejects_row_when_order_line_does_not_exist(catalog: Se
         )
     )
 
-    with pytest.raises(IntegrityError, match="fk_order_allocations_order_id_product_id_order_items"):
+    constraint = "fk_order_allocations_order_id_product_id_order_items"
+    with pytest.raises(IntegrityError, match=constraint):
         catalog.flush()
 
 

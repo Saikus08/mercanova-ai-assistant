@@ -5,6 +5,17 @@ description = "MercaNova AI shopping assistant backend (FastAPI, hexagonal archi
 requires-python = ">=3.12"
 # Runtime and dev dependencies are pinned in requirements.txt / requirements-dev.txt.
 
+[tool.ruff]
+line-length = 100
+# Alembic generates the migrations; they are not reformatted by hand.
+extend-exclude = ["migrations"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+# FastAPI declares dependencies as `Depends(...)` default values.
+ignore = ["B008"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
