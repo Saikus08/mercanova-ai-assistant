@@ -103,8 +103,14 @@ def test_compare_keeps_requested_order_and_unions_attributes_with_null() -> None
     repository = FakeCatalogRepository(
         ["A", "B"],
         {
-            "A": [spec("Display", "Size", number="24.0000", unit="in"), spec("Display", "Panel", "IPS")],
-            "B": [spec("Display", "Size", number="27.5000", unit="in"), spec("Power", "Watts", number="30")],
+            "A": [
+                spec("Display", "Size", number="24.0000", unit="in"),
+                spec("Display", "Panel", "IPS"),
+            ],
+            "B": [
+                spec("Display", "Size", number="27.5000", unit="in"),
+                spec("Power", "Watts", number="30"),
+            ],
         },
     )
 

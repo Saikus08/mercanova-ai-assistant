@@ -19,7 +19,9 @@ from app.adapters.persistence.orm.stock import Inventory, Price, Warehouse
 pytestmark = pytest.mark.integration
 
 
-def make_product(product_id: str, name: str, brand_id: str, sub: tuple[str, str, str], **extra) -> Product:
+def make_product(
+    product_id: str, name: str, brand_id: str, sub: tuple[str, str, str], **extra
+) -> Product:
     category_name, subcategory_name, subcategory_id = sub
     return Product(
         product_id=product_id,
@@ -61,34 +63,84 @@ def catalog_data(db_session: Session) -> None:
         [
             Brand(brand_id="B1", brand_name="Flux"),
             Brand(brand_id="B2", brand_name="Orbit"),
-            Category(subcategory_id="SC-GAM", subcategory_name="Gaming", category_id="C-MON",
-                     category_name="Monitors", sort_order=1),
-            Category(subcategory_id="SC-OFF", subcategory_name="Office", category_id="C-MON",
-                     category_name="Monitors", sort_order=2),
-            Category(subcategory_id="SC-HEA", subcategory_name="Headphones", category_id="C-AUD",
-                     category_name="Audio", sort_order=1),
-            Warehouse(warehouse_id="W1", warehouse_name="Centro", city="Montevideo",
-                      department="Montevideo", country="UY", pickup_enabled=True, shipping_enabled=True),
-            Warehouse(warehouse_id="W2", warehouse_name="Costa", city="Punta del Este",
-                      department="Maldonado", country="UY", pickup_enabled=False, shipping_enabled=True),
+            Category(
+                subcategory_id="SC-GAM",
+                subcategory_name="Gaming",
+                category_id="C-MON",
+                category_name="Monitors",
+                sort_order=1,
+            ),
+            Category(
+                subcategory_id="SC-OFF",
+                subcategory_name="Office",
+                category_id="C-MON",
+                category_name="Monitors",
+                sort_order=2,
+            ),
+            Category(
+                subcategory_id="SC-HEA",
+                subcategory_name="Headphones",
+                category_id="C-AUD",
+                category_name="Audio",
+                sort_order=1,
+            ),
+            Warehouse(
+                warehouse_id="W1",
+                warehouse_name="Centro",
+                city="Montevideo",
+                department="Montevideo",
+                country="UY",
+                pickup_enabled=True,
+                shipping_enabled=True,
+            ),
+            Warehouse(
+                warehouse_id="W2",
+                warehouse_name="Costa",
+                city="Punta del Este",
+                department="Maldonado",
+                country="UY",
+                pickup_enabled=False,
+                shipping_enabled=True,
+            ),
         ]
     )
     db_session.flush()
     db_session.add_all(
         [
             make_product(
-                "MN-001", "Vision 24", "B1", GAMING,
-                short_description="24 inch gaming monitor", description="Long text",
-                rating=Decimal("4.5"), review_count=10, color="Black",
-                recommended_for=["gaming"], not_recommended_for=["printing"],
-                key_features=["QHD", "240 Hz"], tags=["monitor"],
-                width_cm=Decimal("50.4"), height_cm=Decimal("32.4"), depth_cm=Decimal("23.9"),
-                weight_kg=Decimal("6.74"), warranty_months=12, return_days=30,
+                "MN-001",
+                "Vision 24",
+                "B1",
+                GAMING,
+                short_description="24 inch gaming monitor",
+                description="Long text",
+                rating=Decimal("4.5"),
+                review_count=10,
+                color="Black",
+                recommended_for=["gaming"],
+                not_recommended_for=["printing"],
+                key_features=["QHD", "240 Hz"],
+                tags=["monitor"],
+                width_cm=Decimal("50.4"),
+                height_cm=Decimal("32.4"),
+                depth_cm=Decimal("23.9"),
+                weight_kg=Decimal("6.74"),
+                warranty_months=12,
+                return_days=30,
                 image_url="https://example.com/1.png",
             ),
-            make_product("MN-002", "Office 27", "B1", OFFICE, rating=Decimal("4.0"), review_count=3),
-            make_product("MN-003", "Buds", "B2", HEADPHONES, short_description="Wireless earbuds",
-                         rating=Decimal("4.8"), review_count=7),
+            make_product(
+                "MN-002", "Office 27", "B1", OFFICE, rating=Decimal("4.0"), review_count=3
+            ),
+            make_product(
+                "MN-003",
+                "Buds",
+                "B2",
+                HEADPHONES,
+                short_description="Wireless earbuds",
+                rating=Decimal("4.8"),
+                review_count=7,
+            ),
             make_product("MN-004", "Legacy 22", "B2", GAMING, active=False, rating=Decimal("3.0")),
             make_product("MN-005", "Pure_Sound 100% Mic", "B2", HEADPHONES),
         ]
@@ -105,16 +157,38 @@ def catalog_data(db_session: Session) -> None:
             make_stock("MN-002", "W1", 0),
             make_stock("MN-003", "W1", 10),
             make_stock("MN-004", "W1", 2),
-            ProductSpecification(product_id="MN-001", attribute_group="Display", attribute_name="Size",
-                                 value_number=Decimal("24"), unit="in"),
-            ProductSpecification(product_id="MN-001", attribute_group="Display", attribute_name="Panel",
-                                 value_text="IPS"),
-            ProductSpecification(product_id="MN-002", attribute_group="Display", attribute_name="Size",
-                                 value_number=Decimal("27.5"), unit="in"),
-            ProductSpecification(product_id="MN-002", attribute_group="Power", attribute_name="Watts",
-                                 value_number=Decimal("30")),
-            ProductRelation(product_id="MN-001", related_product_id="MN-002",
-                            relation_type="alternative_to", strength=Decimal("0.82")),
+            ProductSpecification(
+                product_id="MN-001",
+                attribute_group="Display",
+                attribute_name="Size",
+                value_number=Decimal("24"),
+                unit="in",
+            ),
+            ProductSpecification(
+                product_id="MN-001",
+                attribute_group="Display",
+                attribute_name="Panel",
+                value_text="IPS",
+            ),
+            ProductSpecification(
+                product_id="MN-002",
+                attribute_group="Display",
+                attribute_name="Size",
+                value_number=Decimal("27.5"),
+                unit="in",
+            ),
+            ProductSpecification(
+                product_id="MN-002",
+                attribute_group="Power",
+                attribute_name="Watts",
+                value_number=Decimal("30"),
+            ),
+            ProductRelation(
+                product_id="MN-001",
+                related_product_id="MN-002",
+                relation_type="alternative_to",
+                strength=Decimal("0.82"),
+            ),
         ]
     )
     db_session.flush()
@@ -127,6 +201,7 @@ def ids(client: TestClient, **params) -> list[str]:
 
 
 # --- list ---------------------------------------------------------------------------------
+
 
 def test_list_returns_summary_shape_and_hides_inactive(client: TestClient) -> None:
     body = client.get("/api/products").json()
@@ -210,7 +285,13 @@ def test_list_caps_page_size_at_100(client: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "params",
-    [{"page": 0}, {"page_size": 0}, {"sort": "cheapest"}, {"min_price": "abc"}, {"in_stock": "maybe"}],
+    [
+        {"page": 0},
+        {"page_size": 0},
+        {"sort": "cheapest"},
+        {"min_price": "abc"},
+        {"in_stock": "maybe"},
+    ],
 )
 def test_list_rejects_invalid_params_with_400_error_shape(client: TestClient, params: dict) -> None:
     response = client.get("/api/products", params=params)
@@ -244,6 +325,7 @@ def test_price_and_stock_reflect_database_changes_between_requests(
 
 # --- detail -------------------------------------------------------------------------------
 
+
 def test_detail_returns_full_product(client: TestClient) -> None:
     body = client.get("/api/products/MN-001").json()
 
@@ -258,16 +340,35 @@ def test_detail_returns_full_product(client: TestClient) -> None:
     assert body["dimensions_cm"] == {"width": 50.4, "height": 32.4, "depth": 23.9}
     assert body["weight_kg"] == 6.74
     assert (body["warranty_months"], body["return_days"]) == (12, 30)
-    assert {"group": "Display", "name": "Size", "value": "24", "unit": "in"} in body["specifications"]
-    assert {"group": "Display", "name": "Panel", "value": "IPS", "unit": None} in body["specifications"]
+    assert {"group": "Display", "name": "Size", "value": "24", "unit": "in"} in body[
+        "specifications"
+    ]
+    assert {"group": "Display", "name": "Panel", "value": "IPS", "unit": None} in body[
+        "specifications"
+    ]
     assert body["availability"] == [
-        {"warehouse_id": "W1", "warehouse_name": "Centro", "city": "Montevideo",
-         "available_qty": 5, "pickup_enabled": True},
-        {"warehouse_id": "W2", "warehouse_name": "Costa", "city": "Punta del Este",
-         "available_qty": 3, "pickup_enabled": False},
+        {
+            "warehouse_id": "W1",
+            "warehouse_name": "Centro",
+            "city": "Montevideo",
+            "available_qty": 5,
+            "pickup_enabled": True,
+        },
+        {
+            "warehouse_id": "W2",
+            "warehouse_name": "Costa",
+            "city": "Punta del Este",
+            "available_qty": 3,
+            "pickup_enabled": False,
+        },
     ]
     assert body["related"] == [
-        {"product_id": "MN-002", "name": "Office 27", "relation_type": "alternative_to", "strength": 0.82}
+        {
+            "product_id": "MN-002",
+            "name": "Office 27",
+            "relation_type": "alternative_to",
+            "strength": 0.82,
+        }
     ]
 
 
@@ -299,6 +400,7 @@ def test_detail_returns_404_error_shape_when_product_does_not_exist(client: Test
 
 # --- compare ------------------------------------------------------------------------------
 
+
 def test_compare_returns_products_and_attribute_union_with_nulls(client: TestClient) -> None:
     response = client.get("/api/products/compare", params={"ids": "MN-002,MN-001"})
 
@@ -313,7 +415,9 @@ def test_compare_returns_products_and_attribute_union_with_nulls(client: TestCli
     assert attributes[("Power", "Watts")]["values"] == {"MN-002": "30", "MN-001": None}
 
 
-@pytest.mark.parametrize("ids_param", ["MN-001", "MN-001,MN-001", "MN-001,MN-002,MN-003,MN-004,MN-005"])
+@pytest.mark.parametrize(
+    "ids_param", ["MN-001", "MN-001,MN-001", "MN-001,MN-002,MN-003,MN-004,MN-005"]
+)
 def test_compare_rejects_wrong_number_of_products(client: TestClient, ids_param: str) -> None:
     response = client.get("/api/products/compare", params={"ids": ids_param})
 
@@ -338,6 +442,7 @@ def test_compare_returns_404_when_an_id_is_unknown(client: TestClient) -> None:
 
 # --- reference data -----------------------------------------------------------------------
 
+
 def test_categories_are_nested_and_ordered(client: TestClient) -> None:
     body = client.get("/api/categories").json()
 
@@ -351,21 +456,37 @@ def test_warehouses_list_all_fields(client: TestClient) -> None:
     body = client.get("/api/warehouses").json()
 
     assert body == [
-        {"warehouse_id": "W1", "warehouse_name": "Centro", "city": "Montevideo",
-         "department": "Montevideo", "country": "UY", "pickup_enabled": True, "shipping_enabled": True},
-        {"warehouse_id": "W2", "warehouse_name": "Costa", "city": "Punta del Este",
-         "department": "Maldonado", "country": "UY", "pickup_enabled": False, "shipping_enabled": True},
+        {
+            "warehouse_id": "W1",
+            "warehouse_name": "Centro",
+            "city": "Montevideo",
+            "department": "Montevideo",
+            "country": "UY",
+            "pickup_enabled": True,
+            "shipping_enabled": True,
+        },
+        {
+            "warehouse_id": "W2",
+            "warehouse_name": "Costa",
+            "city": "Punta del Este",
+            "department": "Maldonado",
+            "country": "UY",
+            "pickup_enabled": False,
+            "shipping_enabled": True,
+        },
     ]
 
 
 # --- errors -------------------------------------------------------------------------------
+
 
 def test_unexpected_error_returns_500_without_details(client: TestClient, monkeypatch) -> None:
     def boom(*args, **kwargs):
         raise RuntimeError("secret internal detail")
 
     monkeypatch.setattr(
-        "app.adapters.persistence.catalog_repository.SqlAlchemyCatalogRepository.list_warehouses", boom
+        "app.adapters.persistence.catalog_repository.SqlAlchemyCatalogRepository.list_warehouses",
+        boom,
     )
 
     response = client.get("/api/warehouses")

@@ -18,7 +18,6 @@ from app.adapters.persistence.orm.stock import Warehouse as WarehouseRow
 from app.domain.catalog import (
     Availability,
     CategoryGroup,
-    Price as PriceValue,
     ProductDetail,
     ProductFilters,
     ProductPage,
@@ -27,6 +26,9 @@ from app.domain.catalog import (
     SortOrder,
     Specification,
     Warehouse,
+)
+from app.domain.catalog import (
+    Price as PriceValue,
 )
 
 _stock = (

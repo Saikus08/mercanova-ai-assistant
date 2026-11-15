@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from app.adapters.persistence.session import get_session
 from app.main import app
-
 from tests.integration.db_utils import (
     TEST_DATABASE_NAME,
     alembic_config,

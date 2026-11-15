@@ -40,7 +40,8 @@ def compare_products(repository: CatalogRepository, product_ids: list[str]) -> C
     ids = list(dict.fromkeys(product_ids))  # drop repeated ids, keep the requested order
     if not MIN_COMPARED_PRODUCTS <= len(ids) <= MAX_COMPARED_PRODUCTS:
         raise InvalidComparison(
-            f"Between {MIN_COMPARED_PRODUCTS} and {MAX_COMPARED_PRODUCTS} different products are needed"
+            f"Between {MIN_COMPARED_PRODUCTS} and {MAX_COMPARED_PRODUCTS} "
+            "different products are needed"
         )
     by_id = {summary.product_id: summary for summary in repository.get_summaries(ids)}
     for product_id in ids:
