@@ -94,6 +94,10 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 - Commands: `make test` (all), `make test-backend`, `make test-frontend`.
 - Every bug fix includes a test that reproduces it.
 
+## Linting
+
+Backend: `ruff check` (config in `backend/pyproject.toml`). Frontend: `oxlint` and `tsc`. `make lint` runs both. `.pre-commit-config.yaml` runs them on commit (tests on push) and CI repeats them, so run `pre-commit install` once after cloning.
+
 ## Skills
 
 | Skill | Role | Use when |
@@ -105,7 +109,7 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 
 ## Language
 
-Code, identifiers, comments and commit messages in English. User-facing UI copy and assistant replies in Spanish (Rioplatense neutral). Documentation for reviewers (`docs/`, README, issues, PR descriptions) in neutral Spanish.
+Code, identifiers, comments, commit messages and file and folder names (including `docs/diagrams/` and `docs/decisions/` files) in English. User-facing UI copy and assistant replies in Spanish (Rioplatense neutral). Documentation for reviewers (`docs/`, README, issues, PR descriptions) in neutral Spanish.
 
 ## Documentation rules
 

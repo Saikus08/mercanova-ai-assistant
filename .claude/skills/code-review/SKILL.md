@@ -33,7 +33,8 @@ Review the PR diff and the linked issue. Report findings as: **Blocking** (must 
 - [ ] No secrets, `.env` files or large generated files committed.
 - [ ] New env vars added to `.env.example`.
 - [ ] Conventional Commit messages; code and comments in English.
-- [ ] The CI check is green.
+- [ ] The CI check is green (includes lint).
+- [ ] File, folder and URL names are in English; frontend routes live in `routes/`, feature code inside `features/<feature>/`.
 - [ ] New or changed flows have their diagram in `docs/diagrams/`.
 - [ ] PR title and description are in Spanish.
 
