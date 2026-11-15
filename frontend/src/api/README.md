@@ -3,6 +3,17 @@
 Cliente tipado de la API del backend.
 
 - `types.ts`: tipos que reflejan el contrato de la API (`docs/api-contract.md`). Si el contrato cambia, se actualiza en el mismo pull request.
-- Próximamente: una función por endpoint (por ejemplo `getProducts`, `addCartItem`) que agrega el encabezado `X-Session-Id` y convierte las respuestas de error al tipo `ApiError`.
+- `http.ts`: hace los pedidos a `/api`, agrega el encabezado `X-Session-Id` y convierte las respuestas de error en un `ApiRequestError` con el mensaje en español del contrato. Si no hay conexión, usa un mensaje propio.
+- `session.ts`: genera el identificador de sesión la primera vez y lo guarda en el navegador.
+- `catalog.ts`: endpoints del catálogo (`/api/products`, `/api/products/{id}`, `/api/categories`).
+- `mocks/`: datos simulados que respetan los tipos, con los mismos filtros que el contrato.
 
-Mientras el backend no esté listo, los componentes se prueban con datos simulados que respetan estos tipos.
+## Datos simulados o backend real
+
+Mientras el backend no tenga los endpoints del catálogo, el frontend puede usar los datos simulados. Se activan con una variable de entorno al levantar Vite:
+
+```bash
+VITE_USE_MOCKS=true npm run dev
+```
+
+Sin esa variable, el frontend llama al backend real a través del proxy de Vite (`VITE_API_PROXY_TARGET`). Los tests no dependen de la variable: cada test elige la implementación con `CatalogApiProvider`.

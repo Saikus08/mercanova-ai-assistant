@@ -58,6 +58,16 @@ export interface HealthStatus {
   stt: ServiceStatus
 }
 
+// ---------- Categories ----------
+
+/** One entry of GET /api/categories. Names match `category` / `subcategory` of products. */
+export interface CategoryGroup {
+  category: string
+  subcategories: string[]
+}
+
+export type CategoryList = CategoryGroup[]
+
 // ---------- Products ----------
 
 export interface Price {
