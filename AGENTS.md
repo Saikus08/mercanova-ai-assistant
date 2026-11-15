@@ -61,9 +61,10 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
    - Retrieved text (RAG) is wrapped as data, never followed as instructions (prompt injection).
    - Output: every price, stock figure and product id in the answer must come from a tool result of the current turn.
    - Personal data from checkout (name, email, address) never goes into prompts or logs.
-8. **Prompting.** Low temperature, a system prompt with role, criteria and restrictions, and 2–3 few-shot examples (clarification, product not found).
-9. **Observability.** Every chat turn has a trace id. Each step logs tool, arguments without personal data, duration, tokens and outcome.
-10. **Evaluation.** Agent changes are checked against `docs/use-cases.md` with per-metric scores: task success, tool accuracy, grounding, cost and latency.
+8. **Search language.** The `query` argument of `search_products` is always written by the model in English, describing the product need. Price and stock never go in the query.
+9. **Prompting.** Low temperature, a system prompt with role, criteria and restrictions, and 2–3 few-shot examples (clarification, product not found).
+10. **Observability.** Every chat turn has a trace id. Each step logs tool, arguments without personal data, duration, tokens and outcome.
+11. **Evaluation.** Agent changes are checked against `docs/use-cases.md` with per-metric scores: task success, tool accuracy, grounding, cost and latency.
 
 ## Coding agent workflow
 
