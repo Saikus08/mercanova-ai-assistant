@@ -28,7 +28,7 @@ backend/
 └── requirements-dev.txt   Dependencias de test (pytest, httpx)
 ```
 
-El modelo de datos, con el diagrama de tablas, está en `docs/diagrams/modelo-de-datos.md`.
+El modelo de datos, con el diagrama de tablas, está en `docs/diagrams/data-model.md`.
 
 ## Variables de entorno
 

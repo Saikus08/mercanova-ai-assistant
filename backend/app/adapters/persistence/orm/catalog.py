@@ -57,7 +57,9 @@ class Product(Base):
     __tablename__ = "products"
     __table_args__ = (
         CheckConstraint("rating IS NULL OR (rating >= 0 AND rating <= 5)", name="rating_range"),
-        CheckConstraint("review_count IS NULL OR review_count >= 0", name="review_count_non_negative"),
+        CheckConstraint(
+            "review_count IS NULL OR review_count >= 0", name="review_count_non_negative"
+        ),
     )
 
     product_id: Mapped[str] = mapped_column(String(32), primary_key=True)

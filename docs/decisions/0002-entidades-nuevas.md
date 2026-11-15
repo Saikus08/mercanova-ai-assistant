@@ -16,7 +16,7 @@ La letra pide justamente eso. Pide persistir la información operacional (dispon
 
 Además, el asistente tiene que recordar la conversación entre un mensaje y el siguiente.
 
-Hay que decidir qué tablas nuevas agregar y cómo se comportan. El modelo completo está en `docs/diagrams/modelo-de-datos.md`.
+Hay que decidir qué tablas nuevas agregar y cómo se comportan. El modelo completo está en `docs/diagrams/data-model.md`.
 
 ## Alternativas
 
