@@ -1,4 +1,4 @@
-import { Badge } from '../ui'
+import { Badge } from '../../../components/ui'
 
 /** Few units left: the badge turns into a warning. */
 export const LOW_STOCK_THRESHOLD = 3

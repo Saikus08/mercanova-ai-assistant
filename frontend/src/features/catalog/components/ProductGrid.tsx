@@ -1,4 +1,4 @@
-import type { ProductSummary } from '../../api/types'
+import type { ProductSummary } from '../../../api/types'
 import { ProductCard } from './ProductCard'
 import styles from './ProductGrid.module.css'
 

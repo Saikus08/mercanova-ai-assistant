@@ -1,4 +1,4 @@
-import { Button, Card } from '../ui'
+import { Button, Card } from '../../../components/ui'
 import styles from './StatusMessage.module.css'
 
 export interface StatusMessageProps {

@@ -1,4 +1,4 @@
-import type { Currency } from '../../api/types'
+import type { Currency } from '../api/types'
 
 const LOCALE = 'es-UY'
 

@@ -1,7 +1,6 @@
-import { NavLink, Route, Routes } from 'react-router'
-import { CatalogPage } from './pages/CatalogPage'
-import { ProductDetailPage } from './pages/ProductDetailPage'
-import { UiShowcasePage } from './pages/UiShowcasePage'
+import { NavLink } from 'react-router'
+import { AppRoutes } from './routes/routes'
+import { paths } from './routes/paths'
 import styles from './App.module.css'
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -14,21 +13,17 @@ export function App() {
         <div className={styles.headerInner}>
           <span className={styles.brand}>MercaNova</span>
           <nav aria-label="Principal" className={styles.nav}>
-            <NavLink to="/" end className={navLinkClass}>
+            <NavLink to={paths.catalog} end className={navLinkClass}>
               Catálogo
             </NavLink>
-            <NavLink to="/ui" className={navLinkClass}>
+            <NavLink to={paths.ui} className={navLinkClass}>
               Componentes
             </NavLink>
           </nav>
         </div>
       </header>
       <main className={styles.main}>
-        <Routes>
-          <Route path="/" element={<CatalogPage />} />
-          <Route path="/productos/:productId" element={<ProductDetailPage />} />
-          <Route path="/ui" element={<UiShowcasePage />} />
-        </Routes>
+        <AppRoutes />
       </main>
     </div>
   )

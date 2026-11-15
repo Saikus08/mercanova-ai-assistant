@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { mockCategories } from '../../api/mocks/catalogData'
+import { mockCategories } from '../../../api/mocks/catalogData'
 import { CatalogFilters } from './CatalogFilters'
 
 describe('CatalogFilters', () => {

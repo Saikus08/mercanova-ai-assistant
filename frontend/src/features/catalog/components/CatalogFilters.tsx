@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent } from 'react'
-import type { CategoryList, ProductListParams, ProductSort } from '../../api/types'
-import { Button, Card, Input } from '../ui'
+import type { CategoryList, ProductListParams, ProductSort } from '../../../api/types'
+import { Button, Card, Input } from '../../../components/ui'
 import styles from './CatalogFilters.module.css'
 
 export interface CatalogFiltersProps {

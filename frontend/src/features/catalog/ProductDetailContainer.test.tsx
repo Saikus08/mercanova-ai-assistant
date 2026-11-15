@@ -7,11 +7,11 @@ import { createMockCatalogApi } from '../../api/mocks/mockCatalogApi'
 import { ProductDetailPage } from '../../pages/ProductDetailPage'
 import { renderWithCatalog } from '../../test/renderWithCatalog'
 
-const route = '/productos/:productId'
+const route = '/products/:productId'
 
 describe('ProductDetailContainer', () => {
   it('shows the product with price, stock per warehouse and specifications', async () => {
-    renderWithCatalog(<ProductDetailPage />, { path: '/productos/MN-MON-0001', route })
+    renderWithCatalog(<ProductDetailPage />, { path: '/products/MN-MON-0001', route })
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Flux Vision 24 QHD IPS' }),
@@ -22,19 +22,19 @@ describe('ProductDetailContainer', () => {
     expect(screen.getByRole('cell', { name: '240 Hz' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Flux Office 27 FHD' })).toHaveAttribute(
       'href',
-      '/productos/MN-MON-0002',
+      '/products/MN-MON-0002',
     )
   })
 
   it('marks products without stock', async () => {
-    renderWithCatalog(<ProductDetailPage />, { path: '/productos/MN-MON-0003', route })
+    renderWithCatalog(<ProductDetailPage />, { path: '/products/MN-MON-0003', route })
 
     expect(await screen.findByText('Sin stock')).toBeInTheDocument()
     expect(screen.queryByText(/unidades disponibles/)).not.toBeInTheDocument()
   })
 
   it('says the product does not exist instead of showing an error', async () => {
-    renderWithCatalog(<ProductDetailPage />, { path: '/productos/MN-NOPE', route })
+    renderWithCatalog(<ProductDetailPage />, { path: '/products/MN-NOPE', route })
 
     expect(await screen.findByText('Este producto no existe')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
@@ -48,7 +48,7 @@ describe('ProductDetailContainer', () => {
       .mockImplementation(createMockCatalogApi().getProduct)
     renderWithCatalog(<ProductDetailPage />, {
       api: { ...createMockCatalogApi(), getProduct },
-      path: '/productos/MN-HEA-0001',
+      path: '/products/MN-HEA-0001',
       route,
     })
 

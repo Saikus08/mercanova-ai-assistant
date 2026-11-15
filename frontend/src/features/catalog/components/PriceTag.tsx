@@ -1,7 +1,7 @@
-import type { Price } from '../../api/types'
-import { Badge } from '../ui'
-import { cx } from '../ui/cx'
-import { formatPrice } from './format'
+import type { Price } from '../../../api/types'
+import { Badge } from '../../../components/ui'
+import { cx } from '../../../components/ui/cx'
+import { formatPrice } from '../../../lib/format'
 import styles from './PriceTag.module.css'
 
 export interface PriceTagProps {

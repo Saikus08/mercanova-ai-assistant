@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
-import { ProductDetailView } from '../../components/catalog/ProductDetailView'
-import { StatusMessage } from '../../components/catalog/StatusMessage'
+import { ProductDetailView } from './components/ProductDetailView'
+import { StatusMessage } from './components/StatusMessage'
 import { Spinner } from '../../components/ui'
 import { useCatalogApi } from './catalogApiContext'
 import { useAsyncResource } from './useAsyncResource'

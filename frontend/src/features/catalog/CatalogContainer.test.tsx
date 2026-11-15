@@ -22,7 +22,7 @@ describe('CatalogContainer', () => {
     expect(screen.getByText('7 productos')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Flux Vision 24 QHD IPS' })).toHaveAttribute(
       'href',
-      '/productos/MN-MON-0001',
+      '/products/MN-MON-0001',
     )
   })
 

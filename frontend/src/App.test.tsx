@@ -23,8 +23,8 @@ describe('App routes', () => {
     expect(await screen.findByRole('list', { name: 'Productos' })).toBeInTheDocument()
   })
 
-  it('shows a product detail on /productos/:productId', async () => {
-    renderAt('/productos/MN-HEA-0001')
+  it('shows a product detail on /products/:productId', async () => {
+    renderAt('/products/MN-HEA-0001')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Echo Calm ANC' })).toBeInTheDocument()
   })

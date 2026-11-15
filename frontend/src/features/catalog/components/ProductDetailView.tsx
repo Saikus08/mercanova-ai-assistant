@@ -1,9 +1,9 @@
 import { Link } from 'react-router'
-import type { ProductDetail, Specification } from '../../api/types'
-import { Badge, Card } from '../ui'
-import { formatNumber } from './format'
+import type { ProductDetail, Specification } from '../../../api/types'
+import { Badge, Card } from '../../../components/ui'
+import { formatNumber } from '../../../lib/format'
 import { PriceTag } from './PriceTag'
-import { productPath } from './paths'
+import { productPath } from '../../../routes/paths'
 import { StockBadge } from './StockBadge'
 import styles from './ProductDetailView.module.css'
 
