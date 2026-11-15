@@ -123,3 +123,20 @@ def test_compare_keeps_requested_order_and_unions_attributes_with_null() -> None
     assert by_name["Size"].unit == "in"
     assert by_name["Panel"].values == {"B": None, "A": "IPS"}
     assert by_name["Watts"].values == {"B": "30", "A": None}
+
+
+def test_compare_keeps_separate_rows_when_units_differ() -> None:
+    repository = FakeCatalogRepository(
+        ["A", "B"],
+        {
+            "A": [spec("Dimensions", "Width", number="24", unit="in")],
+            "B": [spec("Dimensions", "Width", number="61", unit="cm")],
+        },
+    )
+
+    comparison = compare_products(repository, ["A", "B"])
+
+    rows = {a.unit: a for a in comparison.attributes}
+    assert set(rows) == {"in", "cm"}
+    assert rows["in"].values == {"A": "24", "B": None}
+    assert rows["cm"].values == {"A": None, "B": "61"}

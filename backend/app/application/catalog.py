@@ -49,11 +49,11 @@ def compare_products(repository: CatalogRepository, product_ids: list[str]) -> C
             raise ProductNotFound(product_id)
 
     specifications = repository.get_specifications(ids)
-    rows: dict[tuple[str, str], ComparisonAttribute] = {}
+    rows: dict[tuple[str, str, str | None], ComparisonAttribute] = {}
     for product_id in ids:
         for spec in specifications.get(product_id, []):
             row = rows.setdefault(
-                (spec.group, spec.name),
+                (spec.group, spec.name, spec.unit),
                 ComparisonAttribute(spec.group, spec.name, spec.unit, dict.fromkeys(ids)),
             )
             row.values[product_id] = spec.value

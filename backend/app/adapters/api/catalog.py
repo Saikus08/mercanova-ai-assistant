@@ -194,7 +194,7 @@ def list_products(
     max_price: Decimal | None = Query(None, ge=0),
     in_stock: bool | None = None,
     sort: SortOrder | None = None,
-    page: int = Query(1, ge=1),
+    page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(20, ge=1),  # values above 100 are capped by the use case
     repository: CatalogRepository = Depends(get_catalog_repository),
 ) -> ProductPageResponse:

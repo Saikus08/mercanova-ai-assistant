@@ -59,9 +59,9 @@ Si un producto no tiene fila de precio, devolvemos `price: null` y no un precio 
   - `adapters/persistence/catalog_repository.py`: la implementación con SQLAlchemy.
   - `adapters/api/`: routers y manejo de errores [5].
 - **Precio y stock.** Se calculan con *joins* en cada pedido: precio desde `prices` y stock como la suma de `inventory.available_qty` de los cinco depósitos. No hay cache.
-- **Texto, orden y páginas.** `q` es un `ILIKE` con los caracteres `%` y `_` escapados. Sin `sort`, el orden es por `product_id`. `page_size` mayor a 100 se recorta a 100. `page` o `page_size` menores a 1 dan error 400.
-- **Comparación.** Acepta de 2 a 4 productos distintos. Los ids repetidos se descartan. Los atributos son la unión de los de todos los productos y el que falta en alguno vale `null`. Un id inexistente da 404 `PRODUCT_NOT_FOUND`.
-- **Errores.** Un solo manejador convierte excepciones del dominio y errores de validación en `{"error": {"code", "message", "details"}}`. El error inesperado devuelve 500 `INTERNAL_ERROR` sin detalles técnicos.
+- **Texto, orden y páginas.** `q` es un `ILIKE` con los caracteres `%` y `_` escapados. Sin `sort`, el orden es por `product_id`. `page_size` mayor a 100 se recorta a 100. `page` o `page_size` menores a 1 dan error 400. `page` mayor a 10000 también da 400, para que el `OFFSET` no desborde en SQL.
+- **Comparación.** Acepta de 2 a 4 productos distintos. Los ids repetidos se descartan. Los atributos son la unión de los de todos los productos y el que falta en alguno vale `null`. Las filas se identifican por grupo, nombre y unidad: si dos productos usan unidades distintas para el mismo atributo (por ejemplo `in` y `cm`), salen en filas separadas y ningún valor muestra una unidad ajena. Un id inexistente da 404 `PRODUCT_NOT_FOUND`.
+- **Errores.** Un solo manejador convierte excepciones del dominio y errores de validación en `{"error": {"code", "message", "details"}}`. El error inesperado devuelve 500 `INTERNAL_ERROR` sin detalles técnicos. Los errores que lanza el framework usan códigos genéricos: 404 `NOT_FOUND`, 405 `METHOD_NOT_ALLOWED` y cualquier otro estado `HTTP_ERROR`, con el mismo cuerpo y el estado original. Estos códigos todavía no están en el contrato de la API.
 - **Categorías.** Anidadas, ordenadas por categoría y orden de subcategoría. Pendiente de confirmación de Florencia en el PR #52.
 
 ## Justificación

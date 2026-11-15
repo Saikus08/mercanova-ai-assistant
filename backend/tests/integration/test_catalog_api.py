@@ -496,3 +496,35 @@ def test_unexpected_error_returns_500_without_details(client: TestClient, monkey
     assert error["code"] == "INTERNAL_ERROR"
     assert error.get("details") is None
     assert "secret" not in response.text
+
+
+def test_list_rejects_page_too_large_for_sql_offset(client: TestClient) -> None:
+    response = client.get("/api/products", params={"page": 99999999999})
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+def test_unknown_route_returns_contract_error_body(client: TestClient) -> None:
+    response = client.get("/api/nope")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "error": {"code": "NOT_FOUND", "message": "El recurso no existe.", "details": None}
+    }
+
+
+def test_wrong_method_returns_contract_error_body(client: TestClient) -> None:
+    response = client.post("/api/products")
+
+    assert response.status_code == 405
+    assert response.json()["error"]["code"] == "METHOD_NOT_ALLOWED"
+    assert response.json()["error"]["message"] == "Método no permitido."
+    assert "GET" in response.headers["allow"]
+
+
+def test_missing_product_keeps_its_specific_code(client: TestClient) -> None:
+    response = client.get("/api/products/NOPE")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "PRODUCT_NOT_FOUND"
