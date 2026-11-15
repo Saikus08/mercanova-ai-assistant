@@ -1,23 +1,25 @@
 ## Issue
 Closes #
 
-## What changed
-<!-- Short summary. Which RF/RNF does this cover? -->
+## Qué cambió
+<!-- Resumen corto. Qué requisito de la letra cubre (nombrarlo por su significado, no solo por su código). -->
 
-## How it was built
-- Coding agent used: <!-- Claude Code / Codex / Cursor / none -->
-- Skill used: <!-- backend-feature / frontend-component / testing -->
-- Parts written or corrected by hand:
+## Cómo se construyó
+- Coding agent usado: <!-- Claude Code / Codex / Cursor / ninguno -->
+- Skill usada: <!-- backend-feature / frontend-component / testing -->
+- Partes escritas o corregidas a mano:
 
-## How to test
+## Cómo probarlo
 ```
 make test
 ```
-<!-- Paste the summary of the test output -->
+<!-- Pegar el resumen de la salida de los tests y esperar a que el CI esté en verde -->
 
 ## Checklist
-- [ ] Acceptance criteria of the issue met
-- [ ] Tests added/updated and passing
-- [ ] Price/stock only from tools/DB; purchase still requires explicit confirmation
-- [ ] No secrets committed; new env vars in `.env.example`
-- [ ] ADR added if an architectural decision was made
+- [ ] Se cumplen los criterios de aceptación del issue
+- [ ] Tests agregados o actualizados y CI en verde
+- [ ] Precio y stock solo salen de las tools o de la base de datos; la compra sigue requiriendo confirmación explícita
+- [ ] No se subieron secretos y las variables de entorno nuevas están en `.env.example`
+- [ ] Se agregó un ADR si hubo una decisión de arquitectura
+- [ ] Si el cambio agrega o modifica un flujo (endpoint, caso de uso, paso del agente), el diagrama en `docs/diagrams/` está creado o actualizado, o no aplica
+- [ ] Título y descripción del PR en español (solo el prefijo de Conventional Commits queda en inglés)

@@ -33,6 +33,9 @@ Review the PR diff and the linked issue. Report findings as: **Blocking** (must 
 - [ ] No secrets, `.env` files or large generated files committed.
 - [ ] New env vars added to `.env.example`.
 - [ ] Conventional Commit messages; code and comments in English.
+- [ ] The CI check is green.
+- [ ] New or changed flows have their diagram in `docs/diagrams/`.
+- [ ] PR title and description are in Spanish.
 
 ## AI-generated code
 

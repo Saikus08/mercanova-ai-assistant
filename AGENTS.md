@@ -69,7 +69,7 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 
 - **Tickets.** Every task given to a coding agent states context, goal, scope, **what is out of scope / must not be touched**, constraints and acceptance criteria (see the issue template).
 - **Hooks.** `.claude/settings.json` runs `.claude/hooks/guard.py` before every edit or shell command. It blocks writing secret files, committing or pushing on `main`, force pushes and committing the dataset. Do not disable it to get around a block; fix the cause.
-- **Review questions** in addition to the `code-review` skill: Did the agent invent architecture or data? Is there unnecessary complexity? Are the touched files reasonable for the ticket? Is the diff small enough to review? Would you merge it without reading it? If yes, read it.
+- **Review questions** in addition to the `code-review` skill: Did the agent invent architecture or data? Is there unnecessary complexity? Are the touched files reasonable for the ticket? Is the diff small enough to review? Would you merge it without reading it? If yes, read it. Does a new or changed flow have its diagram in `docs/diagrams/` in the same PR?
 - Coding-agent skills (`.claude/skills/`) are procedures for building the project. They are not the assistant's tools.
 
 ## Configuration and secrets
@@ -82,9 +82,10 @@ These rules apply to the code of the assistant itself (`backend/app/.../agent`, 
 1. Every change starts from a GitHub issue (task ID like `BE-02`, `AI-03`).
 2. Branch: `<type>/<task-id>-short-description` (e.g. `feat/be-02-cart-domain`).
 3. Commits: Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`), referencing the issue (`feat(cart): add quantity update (#12)`). No AI attribution trailers.
-4. Open a PR using the template. **The other team member reviews** using the `code-review` skill. No self-merge.
-5. A PR is mergeable only with tests passing and the PR checklist complete.
+4. Open a PR using the template. **The other team member reviews** using the `code-review` skill. No self-merge. The PR title and description are written in neutral Spanish; only the Conventional Commits prefix (e.g. `feat(catalog):`) stays in English.
+5. A PR is mergeable only with tests passing and the PR checklist complete. The CI check shown in the PR must be green. The repository plan cannot enforce it, so the reviewer verifies it before approving.
 6. When an architectural decision is made, add an ADR in `docs/decisions/` using `0000-template.md`.
+7. When a change adds or modifies a flow (endpoint, use case, agent step), the same PR creates or updates its Mermaid diagram in `docs/diagrams/`, showing what is implemented. This builds the sequence diagrams the report needs as the project grows.
 
 ## Testing
 
