@@ -20,7 +20,11 @@ def read_workbook(path: Path) -> dict[str, SheetData]:
             data = [
                 SheetRow(
                     number=number,
-                    values={column: value for column, value in zip(columns, values) if column},
+                    values={
+                        column: value
+                        for column, value in zip(columns, values, strict=False)
+                        if column
+                    },
                 )
                 for number, values in enumerate(rows, start=2)
                 if any(value is not None for value in values)
