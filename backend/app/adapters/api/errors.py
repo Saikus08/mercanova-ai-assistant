@@ -1,11 +1,13 @@
 """One place that turns exceptions into the contract's error body."""
 
 import logging
+import traceback
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import StatementError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.adapters.api.session import InvalidSessionId, MissingSession
@@ -16,6 +18,13 @@ from app.domain.cart import (
     ProductInactive,
 )
 from app.domain.catalog import InvalidComparison, ProductNotFound
+from app.domain.purchase import (
+    CartEmpty,
+    InvalidCheckout,
+    OrderNotFound,
+    OrderNotPending,
+    PriceChanged,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +95,40 @@ def _invalid_quantity(_: Request, error: Exception) -> JSONResponse:
     )
 
 
+def _cart_empty(_: Request, error: Exception) -> JSONResponse:
+    return error_response(409, "CART_EMPTY", "El carrito está vacío.")
+
+
+def _order_not_found(_: Request, error: Exception) -> JSONResponse:
+    return error_response(404, "ORDER_NOT_FOUND", "La orden no existe.")
+
+
+def _order_not_pending(_: Request, error: Exception) -> JSONResponse:
+    return error_response(409, "ORDER_NOT_PENDING", "La orden ya fue confirmada o cancelada.")
+
+
+def _price_changed(_: Request, error: Exception) -> JSONResponse:
+    assert isinstance(error, PriceChanged)
+    return error_response(
+        409,
+        "PRICE_CHANGED",
+        "El precio cambió desde que armaste la orden.",
+        {
+            "product_id": error.product_id,
+            "old_price": round(float(error.old_price), 2),
+            "new_price": round(float(error.new_price), 2),
+        },
+    )
+
+
+def _invalid_checkout(_: Request, error: Exception) -> JSONResponse:
+    assert isinstance(error, InvalidCheckout)
+    problems = [{"field": field, "message": message} for field, message in error.errors]
+    return error_response(
+        400, "VALIDATION_ERROR", "Los datos enviados no son válidos.", {"errors": problems}
+    )
+
+
 def _missing_session(_: Request, error: Exception) -> JSONResponse:
     return error_response(
         400, "MISSING_SESSION", "Falta el identificador de sesión (encabezado X-Session-Id)."
@@ -124,7 +167,12 @@ def _http_error(_: Request, error: Exception) -> JSONResponse:
 
 
 def _unexpected_error(_: Request, error: Exception) -> JSONResponse:
-    logger.exception("Unhandled error", exc_info=error)
+    if isinstance(error, StatementError):
+        # Its message embeds the bound parameters, which may be customer data: log frames only.
+        frames = "".join(traceback.format_tb(error.__traceback__))
+        logger.error("Unhandled %s\n%s", type(error).__name__, frames)
+    else:
+        logger.exception("Unhandled error", exc_info=error)
     return error_response(500, "INTERNAL_ERROR", "Ocurrió un error inesperado.")
 
 
@@ -135,6 +183,11 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(InsufficientStock, _insufficient_stock)
     app.add_exception_handler(ProductInactive, _product_inactive)
     app.add_exception_handler(InvalidQuantity, _invalid_quantity)
+    app.add_exception_handler(CartEmpty, _cart_empty)
+    app.add_exception_handler(OrderNotFound, _order_not_found)
+    app.add_exception_handler(OrderNotPending, _order_not_pending)
+    app.add_exception_handler(PriceChanged, _price_changed)
+    app.add_exception_handler(InvalidCheckout, _invalid_checkout)
     app.add_exception_handler(MissingSession, _missing_session)
     app.add_exception_handler(InvalidSessionId, _invalid_session_id)
     app.add_exception_handler(RequestValidationError, _validation_error)

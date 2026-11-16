@@ -1,6 +1,7 @@
 """Ports (interfaces) that adapters implement."""
 
 from collections.abc import Callable
+from decimal import Decimal
 from typing import Protocol
 
 from app.domain.cart import CartLine, ProductStockInfo
@@ -13,6 +14,15 @@ from app.domain.catalog import (
     SortOrder,
     Specification,
     Warehouse,
+)
+from app.domain.purchase import (
+    ConfirmationPlan,
+    Customer,
+    Delivery,
+    DeliveryOption,
+    Order,
+    OrderLine,
+    StockRow,
 )
 from app.domain.search import SearchFilters, SearchHit
 
@@ -74,6 +84,45 @@ class CartRepository(Protocol):
         ...
 
     def clear(self, session_id: str) -> None: ...
+
+
+class OrderRepository(Protocol):
+    """Order storage. Confirmation is one database transaction owned by the repository."""
+
+    def delivery_options(self) -> list[DeliveryOption]: ...
+
+    def stock_rows(self, product_ids: list[str]) -> list[StockRow]:
+        """Current stock per warehouse, read without locking."""
+        ...
+
+    def create(
+        self,
+        session_id: str,
+        customer: Customer,
+        delivery: Delivery,
+        items: list[OrderLine],
+        total: Decimal,
+    ) -> Order:
+        """Insert a pending order with the next daily order id. Touches neither stock nor cart."""
+        ...
+
+    def confirm(
+        self,
+        order_id: str,
+        session_id: str,
+        decide: Callable[[Order, dict[str, Decimal], list[StockRow]], ConfirmationPlan],
+    ) -> Order:
+        """Lock the order and its stock rows, apply the plan from ``decide`` and empty the cart.
+
+        All or nothing.
+        Raises OrderNotFound or OrderNotPending, and whatever ``decide`` raises (the transaction
+        is rolled back).
+        """
+        ...
+
+    def cancel(self, order_id: str, session_id: str) -> Order:
+        """Cancel a pending order. Stock is untouched because pending orders reserve nothing."""
+        ...
 
 
 class EmbeddingModel(Protocol):

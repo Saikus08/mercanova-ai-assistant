@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 
-from app.adapters.api import cart, catalog, health
+from app.adapters.api import cart, catalog, health, orders
 from app.adapters.api.errors import register_error_handlers
 
 
@@ -12,6 +12,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(catalog.router)
     app.include_router(cart.router)
+    app.include_router(orders.router)
     return app
 
 
