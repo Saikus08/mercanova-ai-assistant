@@ -20,7 +20,8 @@ PERMISSIONS: dict[str, Permission] = {
     "view_cart": Permission.FREE,
     # Quantity is validated against stock.
     "add_to_cart": Permission.FREE,
-    # Creates only a pending draft: no stock change, no purchase.
+    # Only prepares a draft for the purchase window: it creates no order (no stock change, no
+    # purchase, no personal data).
     "start_checkout": Permission.FREE,
     # Never tools: only the user, through the UI, confirms or cancels an order (RF-12).
     "confirm_order": Permission.FORBIDDEN,
