@@ -12,6 +12,7 @@ from app.domain.catalog import (
     Specification,
     Warehouse,
 )
+from app.domain.search import SearchFilters, SearchHit
 
 
 class DatabaseProbe(Protocol):
@@ -38,3 +39,20 @@ class CatalogRepository(Protocol):
     def list_categories(self) -> list[CategoryGroup]: ...
 
     def list_warehouses(self) -> list[Warehouse]: ...
+
+
+class EmbeddingModel(Protocol):
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        """One vector per text, in order. Raises SearchUnavailable when the model fails."""
+        ...
+
+
+class SemanticSearch(Protocol):
+    def search(
+        self, vector: list[float], filters: SearchFilters, top_k: int
+    ) -> list[SearchHit]:
+        """Active products nearest to the vector that pass the filters, best first.
+
+        Price and stock filters are evaluated against the database at query time.
+        """
+        ...
