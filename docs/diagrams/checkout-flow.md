@@ -117,7 +117,41 @@ stateDiagram-v2
 
 `confirmed` y `cancelled` son finales: confirmar o cancelar de nuevo da `ORDER_NOT_PENDING`.
 
-## 5. Clases
+## 5. Historial de órdenes (RF-16)
+
+`GET /api/orders` devuelve las órdenes de la sesión, de la más nueva a la más vieja. `GET /api/orders/{order_id}` devuelve una sola. Las dos son de solo lectura.
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario (interfaz)
+    participant R as Router
+    participant C as Caso de uso list_orders / get_order
+    participant A as Repositorio de órdenes
+    participant DB as PostgreSQL
+
+    alt historial
+        U->>R: GET /api/orders + X-Session-Id
+        R->>C: list_orders(sesión)
+        C->>A: list_for_session(sesión)
+        A->>DB: órdenes de la sesión, de la más nueva a la más vieja
+        A->>DB: las líneas de todas esas órdenes en una sola consulta
+        C-->>U: 200 lista de órdenes (vacía si no hay)
+    else una orden
+        U->>R: GET /api/orders/ORD-... + X-Session-Id
+        R->>C: get_order(sesión, orden)
+        C->>A: get(orden, sesión)
+        A->>DB: busca la orden filtrando por sesión
+        alt no existe o es de otra sesión
+            C-->>U: 404 ORDER_NOT_FOUND
+        else existe
+            C-->>U: 200 la orden con sus líneas
+        end
+    end
+```
+
+El historial incluye órdenes en los tres estados: pendientes, confirmadas y canceladas. Cada línea muestra el nombre y el precio copiados al crear la orden. Si después cambia el precio o el nombre del producto, el historial sigue mostrando lo que se pagó (precio congelado en la orden, RF-14). Una sesión nunca ve las órdenes de otra: buscar una orden ajena responde lo mismo que una que no existe.
+
+## 6. Clases
 
 ```mermaid
 classDiagram
@@ -162,12 +196,16 @@ classDiagram
             checkout
             confirm_order
             cancel_order
+            list_orders
+            get_order
         }
         class OrderRepository {
             <<puerto>>
             create()
             confirm(decide)
             cancel()
+            list_for_session()
+            get()
         }
     }
 
