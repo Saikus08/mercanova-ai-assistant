@@ -16,7 +16,9 @@ from pydantic import ValidationError
 from app.application.agent.permissions import PERMISSIONS, Permission
 from app.application.agent.registry import ToolRegistry
 from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
+from app.domain.cart import InsufficientStock, InvalidQuantity, ItemNotInCart, ProductInactive
 from app.domain.catalog import InvalidComparison, ProductNotFound
+from app.domain.purchase import CartEmpty
 from app.domain.search import SearchUnavailable
 
 logger = logging.getLogger(__name__)
@@ -93,6 +95,24 @@ class ToolDispatcher:
                 str(error),
                 "Call compare_products again to compare between 2 and 4 different products",
             )
+        except InsufficientStock as error:
+            return False, _failure(
+                f"Only {error.available} units of {error.product_id} are available",
+                "Offer the user a smaller quantity or call get_alternatives for this product; "
+                "do not add more than is available",
+            )
+        except ProductInactive as error:
+            return False, _failure(
+                str(error),
+                "This product is not for sale; call get_alternatives or search_products "
+                "to offer another",
+            )
+        except InvalidQuantity as error:
+            return False, _failure(str(error), "quantity must be a whole number from 1 to 1000")
+        except ItemNotInCart as error:
+            return False, _failure(str(error), "Call view_cart to see what is in the cart")
+        except CartEmpty:
+            return False, _failure("The cart is empty", "Add products with add_to_cart first")
         except SearchUnavailable:
             return False, _failure(
                 "Product search is unavailable",
