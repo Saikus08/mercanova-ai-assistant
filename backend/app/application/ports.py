@@ -1,7 +1,9 @@
 """Ports (interfaces) that adapters implement."""
 
+from collections.abc import Callable
 from typing import Protocol
 
+from app.domain.cart import CartLine, ProductStockInfo
 from app.domain.catalog import (
     CategoryGroup,
     ProductDetail,
@@ -39,6 +41,39 @@ class CatalogRepository(Protocol):
     def list_categories(self) -> list[CategoryGroup]: ...
 
     def list_warehouses(self) -> list[Warehouse]: ...
+
+
+class CartRepository(Protocol):
+    """Cart storage keyed by browser session. It stores product and quantity only.
+
+    Price, name, image and stock of each line are read from the database on every call.
+    Mutating methods are atomic per session; ``check`` runs under that guarantee with the
+    quantity the line would hold and may raise to abort the change.
+    """
+
+    def get_lines(self, session_id: str) -> list[CartLine]:
+        """Lines ordered by the time they were added, then product id."""
+        ...
+
+    def product_stock_info(self, product_id: str) -> ProductStockInfo | None: ...
+
+    def add_quantity(
+        self, session_id: str, product_id: str, quantity: int, check: Callable[[int], None]
+    ) -> None:
+        """Add to the line (creating it if needed) after ``check(existing + quantity)``."""
+        ...
+
+    def set_quantity(
+        self, session_id: str, product_id: str, quantity: int, check: Callable[[int], None]
+    ) -> bool:
+        """Replace the line quantity after ``check(quantity)``. False when not in the cart."""
+        ...
+
+    def remove_item(self, session_id: str, product_id: str) -> None:
+        """Remove a line; nothing happens when it is not there."""
+        ...
+
+    def clear(self, session_id: str) -> None: ...
 
 
 class EmbeddingModel(Protocol):
