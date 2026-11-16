@@ -10,7 +10,9 @@ from app.application.agent.dispatcher import ToolDispatcher
 from app.application.agent.permissions import PERMISSIONS, Permission
 from app.application.agent.registry import ToolRegistry
 from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
+from app.domain.cart import InsufficientStock, InvalidQuantity, ItemNotInCart, ProductInactive
 from app.domain.catalog import InvalidComparison, ProductNotFound
+from app.domain.purchase import CartEmpty
 from app.domain.search import SearchUnavailable
 
 CONTEXT = ToolContext(session_id="session-1")
@@ -277,6 +279,50 @@ def test_dispatch_maps_invalid_comparison_to_a_hint_about_the_number_of_products
 
     assert result.ok is False
     assert "compare between 2 and 4 different products" in result.payload["hint"]
+
+
+def test_dispatch_maps_insufficient_stock_to_the_available_units_and_a_hint():
+    result = run_failing(InsufficientStock("MN-001", 9, 4))
+
+    assert result.ok is False
+    assert result.payload["error"] == "Only 4 units of MN-001 are available"
+    assert result.payload["hint"] == (
+        "Offer the user a smaller quantity or call get_alternatives for this product; "
+        "do not add more than is available"
+    )
+
+
+def test_dispatch_maps_product_inactive_to_a_hint_about_other_products():
+    result = run_failing(ProductInactive("MN-003"))
+
+    assert result.ok is False
+    assert "MN-003" in result.payload["error"]
+    assert result.payload["hint"] == (
+        "This product is not for sale; call get_alternatives or search_products to offer another"
+    )
+
+
+def test_dispatch_maps_invalid_quantity_to_the_allowed_range():
+    result = run_failing(InvalidQuantity("Quantity must be an integer from 1 to 1000"))
+
+    assert result.ok is False
+    assert result.payload["hint"] == "quantity must be a whole number from 1 to 1000"
+
+
+def test_dispatch_maps_item_not_in_cart_to_a_hint_about_view_cart():
+    result = run_failing(ItemNotInCart("MN-001"))
+
+    assert result.ok is False
+    assert "MN-001" in result.payload["error"]
+    assert result.payload["hint"] == "Call view_cart to see what is in the cart"
+
+
+def test_dispatch_maps_cart_empty_to_a_hint_about_add_to_cart():
+    result = run_failing(CartEmpty())
+
+    assert result.ok is False
+    assert result.payload["hint"] == "Add products with add_to_cart first"
+    assert result.payload["error"]
 
 
 def test_dispatch_marks_search_unavailable_as_retryable_and_tells_not_to_invent():
