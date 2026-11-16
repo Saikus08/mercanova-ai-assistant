@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     # e.g. postgresql+psycopg://user:password@db:5432/mercanova
     database_url: str
     ollama_base_url: str = "http://ollama:11434"
+    embedding_model: str = "nomic-embed-text"
+    embedding_timeout_seconds: float = 30.0
     # Course Excel, mounted read-only from ./data by docker compose.
     dataset_path: str = "/data/MercaNova_dataset_obligatorio_2.xlsx"
 

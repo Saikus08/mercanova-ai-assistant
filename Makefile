@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate pull-models seed test test-backend test-frontend lint
+.PHONY: up down logs migrate pull-models seed embed test test-backend test-frontend lint
 
 up:            ## Start all services
 	docker compose up -d --build
@@ -18,6 +18,9 @@ pull-models:   ## Download LLM and embedding models into Ollama
 
 seed:          ## Load the dataset into PostgreSQL and build embeddings (tasks DB-02 / AI-01)
 	docker compose exec backend python -m app.scripts.seed
+
+embed:         ## Embed products for semantic search; only new or changed ones (needs seed and pull-models)
+	docker compose exec backend python -m app.scripts.embed
 
 test: test-backend test-frontend
 
