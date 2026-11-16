@@ -123,6 +123,23 @@ def confirm_order(
     return _order(use_cases.confirm_order(orders, session_id, order_id))
 
 
+@router.get("/api/orders", response_model=list[OrderResponse])
+def list_orders(
+    session_id: str = Depends(get_session_id),
+    orders: OrderRepository = Depends(get_order_repository),
+) -> list[OrderResponse]:
+    return [_order(order) for order in use_cases.list_orders(orders, session_id)]
+
+
+@router.get("/api/orders/{order_id}", response_model=OrderResponse)
+def get_order(
+    order_id: str,
+    session_id: str = Depends(get_session_id),
+    orders: OrderRepository = Depends(get_order_repository),
+) -> OrderResponse:
+    return _order(use_cases.get_order(orders, session_id, order_id))
+
+
 @router.post("/api/orders/{order_id}/cancel", response_model=OrderResponse)
 def cancel_order(
     order_id: str,

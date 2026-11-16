@@ -6,7 +6,13 @@ from decimal import Decimal
 
 import pytest
 
-from app.application.checkout import cancel_order, checkout, confirm_order
+from app.application.checkout import (
+    cancel_order,
+    checkout,
+    confirm_order,
+    get_order,
+    list_orders,
+)
 from app.domain.cart import CartLine, InsufficientStock, ProductInactive, ProductStockInfo
 from app.domain.order import DeliveryMethod, OrderStatus
 from app.domain.purchase import (
@@ -258,6 +264,14 @@ class FakeOrderRepository:
         self.cancelled = (order_id, session_id)
         return order(PICKUP_W1, {"P1": ("10.00", 1)}, OrderStatus.CANCELLED)
 
+    def list_for_session(self, session_id: str) -> list[Order]:
+        self.listed = session_id
+        return [order(PICKUP_W1, {"P1": ("10.00", 1)})]
+
+    def get(self, order_id: str, session_id: str) -> Order:
+        self.fetched = (order_id, session_id)
+        return order(PICKUP_W1, {"P1": ("10.00", 1)})
+
 
 @pytest.fixture
 def carts() -> FakeCartRepository:
@@ -352,3 +366,17 @@ def test_cancel_delegates_to_the_repository(orders):
 
 def test_allocation_is_a_value_object():
     assert Allocation("P1", "W1", 2) == Allocation("P1", "W1", 2)
+
+
+# --- history ---
+
+
+def test_list_orders_reads_only_the_callers_session(orders):
+    listed = list_orders(orders, SESSION)
+    assert orders.listed == SESSION
+    assert [o.order_id for o in listed] == ["ORD-20261112-0001"]
+
+
+def test_get_order_passes_the_session_so_other_sessions_cannot_read_it(orders):
+    get_order(orders, SESSION, "ORD-20261112-0001")
+    assert orders.fetched == ("ORD-20261112-0001", SESSION)
