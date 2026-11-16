@@ -19,6 +19,18 @@ class Settings(BaseSettings):
     # Minimum cosine similarity for a search hit to be shown. Provisional: measured on 16 queries
     # (catalog queries scored 0.661-0.776, off-catalog ones 0.494-0.588); tune with the evaluations.
     search_min_similarity: float = 0.62
+    # Chat model of the shopping assistant (decision 0001); LLM_MODEL overrides it.
+    llm_model: str = "qwen3:8b"
+    # Applies to one chat request; local CPU inference can be slow.
+    llm_timeout_seconds: float = 120.0
+    llm_temperature: float = 0.1
+    llm_num_ctx: int = 8192
+    # None leaves the model default; True/False forces reasoning mode on or off.
+    llm_think: bool | None = None
+    # Maximum model calls per chat turn before a degraded answer.
+    agent_max_steps: int = 6
+    # Recent messages sent to the model besides the system prompt and the state.
+    agent_history_messages: int = 8
     # Course Excel, mounted read-only from ./data by docker compose.
     dataset_path: str = "/data/MercaNova_dataset_obligatorio_2.xlsx"
 
