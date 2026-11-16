@@ -57,3 +57,5 @@ class TurnResult:
     prompt_tokens: int
     completion_tokens: int
     trace_id: str
+    # True when the harness built the recommendations from tool data because the model gave none.
+    fallback_used: bool = False

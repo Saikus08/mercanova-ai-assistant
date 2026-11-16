@@ -96,8 +96,9 @@ def recommending(**fields):
 
 
 class Fakes:
-    def __init__(self, empty_search=False):
+    def __init__(self, empty_search=False, pages=None):
         self.empty_search = empty_search
+        self.pages = list(pages or [])  # one product list per search; the last one repeats
         self.search_args = []
         self.compare_ids = []
         self.sessions = []
@@ -108,6 +109,9 @@ class Fakes:
             self.sessions.append(context.session_id)
             if self.empty_search:
                 return {"products": [], "count": 0, "note": "Nothing similar enough."}
+            if self.pages:
+                products = self.pages.pop(0) if len(self.pages) > 1 else self.pages[0]
+                return {"products": products, "count": len(products)}
             return {"products": [ALPHA, BETA], "count": 2}
 
         def compare(args, context):
@@ -823,13 +827,14 @@ def test_products_found_and_nothing_recommended_retries_once_and_accepts_recomme
     assert model.calls[-1].messages[-1].content == RECOMMENDATION_RETRY
 
 
-def test_products_found_and_still_nothing_recommended_is_accepted_without_filler():
+def test_products_found_and_still_nothing_recommended_keeps_the_reply_and_uses_the_fallback():
     model = searched(final(reply="Hay opciones."), final(reply="Sigue sin recomendar."))
 
     result = run(make_loop(model), "Busco auriculares para trabajar")
 
     assert result.stop_reason is StopReason.ANSWER
-    assert result.recommendations == []
+    assert result.fallback_used is True
+    assert [r["product"] for r in result.recommendations] == [ALPHA, BETA]
     assert result.clarification is None
     assert result.reply == "Sigue sin recomendar."
     assert len(final_calls(model)) == 2
@@ -872,7 +877,8 @@ def test_final_phase_calls_are_capped_at_four_and_a_valid_answer_is_kept():
     assert len(final_calls(model)) == 4
     assert result.stop_reason is StopReason.ANSWER
     assert result.reply == "Hay opciones."
-    assert result.recommendations == []
+    assert len(result.recommendations) == 2
+    assert result.fallback_used is True
 
 
 def test_the_cap_degrades_when_the_current_answer_is_not_valid():
@@ -922,3 +928,146 @@ def test_not_found_is_not_derived_when_the_answer_is_a_clarification():
 
     assert result.not_found is None
     assert result.clarification is not None
+
+
+# --- recommendation fallback ---------------------------------------------------------------
+
+
+def described(product_id, name, short_description=None):
+    base = card(product_id, name, 10.0)
+    return {**base, "short_description": short_description} if short_description else base
+
+
+def empty_twice():
+    return [final(reply="Hay opciones."), final(reply="Sigo sin recomendar.")]
+
+
+def test_fallback_builds_recommendations_from_the_last_search_cards():
+    first = [described("MN-9", "Old", "Old one")]
+    last = [
+        described("MN-1", "Alpha", "Cómodas para llamadas"),
+        described("MN-2", "Beta", "Cancelación de ruido"),
+        described("MN-3", "Gamma", "Livianas"),
+    ]
+    model = ScriptedModel(
+        tool_reply("search_products", query="headphones"),
+        tool_reply("search_products", query="wireless headphones"),
+        text_reply(),
+        *empty_twice(),
+    )
+
+    result = run(make_loop(model, Fakes(pages=[first, last])), "Busco auriculares para trabajar")
+
+    assert result.fallback_used is True
+    assert result.recommendations == [
+        {"product": last[0], "reason": "Cómodas para llamadas"},
+        {"product": last[1], "reason": "Cancelación de ruido"},
+        {"product": last[2], "reason": "Livianas"},
+    ]
+    assert result.reply == "Sigo sin recomendar."
+
+
+def test_fallback_reason_is_the_product_name_without_a_short_description():
+    products = [described("MN-1", "Alpha", "Cómodas"), described("MN-2", "Beta")]
+    model = searched(*empty_twice())
+
+    result = run(make_loop(model, Fakes(pages=[products])), "Busco auriculares para trabajar")
+
+    assert result.fallback_used is True
+    assert [r["reason"] for r in result.recommendations] == ["Cómodas", "Beta"]
+
+
+def test_fallback_never_exceeds_three_recommendations():
+    products = [described(f"MN-{i}", f"P{i}") for i in range(1, 7)]
+    model = searched(*empty_twice())
+
+    result = run(make_loop(model, Fakes(pages=[products])), "Busco auriculares para trabajar")
+
+    assert [r["product"]["product_id"] for r in result.recommendations] == [
+        "MN-1",
+        "MN-2",
+        "MN-3",
+    ]
+
+
+def test_fallback_cards_are_exactly_the_tool_dicts():
+    model = searched(*empty_twice())
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.fallback_used is True
+    assert result.recommendations[0]["product"] is ALPHA
+    assert result.recommendations[1]["product"] is BETA
+    assert result.recommendations[1]["product"]["price"]["current"] == 149.0
+
+
+def test_no_fallback_when_the_model_recommended_by_itself():
+    model = searched(*empty_twice()[:1], final(reply="Alpha.", recommendations=RECOMMEND_ALPHA))
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.fallback_used is False
+    assert result.recommendations == [{"product": ALPHA, "reason": "Cómodo"}]
+
+
+def test_no_fallback_when_the_models_recommendations_were_all_dropped_but_it_clarified():
+    model = searched(final(reply="¿Qué buscás?", clarification=ASK))
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.fallback_used is False
+    assert result.recommendations == []
+
+
+def test_no_fallback_when_the_model_reported_not_found():
+    model = searched(final(reply="No hay.", not_found="auriculares"))
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.fallback_used is False
+    assert result.recommendations == []
+
+
+def test_no_fallback_on_a_vague_blocked_turn():
+    model = vague(final(reply="Contame más."), final(reply="Sigo sin preguntar."))
+
+    result = run(make_loop(model), "Quiero un monitor")
+
+    assert result.fallback_used is False
+    assert result.recommendations == []
+
+
+def test_no_fallback_on_a_compare_only_turn():
+    model = ScriptedModel(
+        tool_reply("compare_products", product_ids=["MN-1", "MN-2"]),
+        text_reply(),
+        final(reply="Alpha es más barato."),
+    )
+
+    result = run(make_loop(model), "Compará el primero con el segundo")
+
+    assert result.fallback_used is False
+    assert result.recommendations == []
+
+
+def test_no_fallback_when_the_search_found_nothing():
+    model = ScriptedModel(
+        tool_reply("search_products", query="PlayStation 9 game console"),
+        text_reply(),
+        final(reply="No tenemos esa consola."),
+    )
+
+    result = run(make_loop(model, Fakes(empty_search=True)), "¿Cuánto sale una PlayStation 9?")
+
+    assert result.fallback_used is False
+    assert result.recommendations == []
+
+
+def test_degraded_turns_never_use_the_fallback():
+    model = searched(final(reply="Uso search_products."), final(reply="Sigo con search_products."))
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.degraded
+    assert result.fallback_used is False
+    assert result.recommendations == []

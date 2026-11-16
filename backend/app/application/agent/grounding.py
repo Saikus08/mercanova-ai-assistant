@@ -155,6 +155,11 @@ class TurnFacts:
             self.product_cards[str(card["product_id"])] = card
 
 
+def result_cards(payload: dict[str, Any], key: str = "products") -> list[dict[str, Any]]:
+    """The product cards of a tool result under ``key``, exactly as the tool returned them."""
+    return _items(payload, key)
+
+
 def _items(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
     items = payload.get(key)
     return [item for item in items if _is_card(item)] if isinstance(items, list) else []

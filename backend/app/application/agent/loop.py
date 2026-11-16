@@ -27,6 +27,7 @@ from app.application.agent.grounding import (
     TurnFacts,
     leaked_tool_names,
     numbers_in_text,
+    result_cards,
     shown_products,
     too_vague_search,
     ungrounded_amounts,
@@ -104,6 +105,8 @@ class _Turn:
     vague_blocked: bool = False
     # Query of the last search that matched nothing: the source of the not_found block.
     empty_search_query: str | None = None
+    # Cards, in order, of the last successful search: the source of the recommendation fallback.
+    last_search_cards: list[dict[str, Any]] = field(default_factory=list)
 
 
 class AgentLoop:
@@ -219,6 +222,8 @@ class AgentLoop:
         if ok:
             turn.facts.record(payload)
             turn.state.record_products(shown_products(payload))
+            if call.name == SEARCH_TOOL:
+                turn.last_search_cards = result_cards(payload)
             if call.name == "search_products" and not payload.get("products"):
                 turn.empty_search_query = str(call.arguments.get("query", "")).strip() or None
         turn.tools_used.append(
@@ -383,6 +388,13 @@ class AgentLoop:
             for item in answer.recommendations
             if item.product_id in turn.facts.product_cards
         ][:MAX_RECOMMENDATIONS]
+        fallback_used = False
+        if _needs_fallback(turn, answer, recommendations):
+            recommendations = [
+                {"product": product, "reason": product.get("short_description") or product["name"]}
+                for product in turn.last_search_cards[:MAX_RECOMMENDATIONS]
+            ]
+            fallback_used = True
         returned_products = bool(recommendations) or bool(turn.facts.product_cards)
         clarification = answer.clarification.model_dump() if answer.clarification else None
         # Derived from the tool result, so the not_found block does not depend on the model
@@ -402,6 +414,7 @@ class AgentLoop:
             prompt_tokens=turn.prompt_tokens,
             completion_tokens=turn.completion_tokens,
             trace_id=turn.trace_id,
+            fallback_used=fallback_used,
         )
 
     def _degraded(self, turn: _Turn, reason: StopReason) -> TurnResult:
@@ -436,8 +449,23 @@ def _needs_recommendations(turn: _Turn, answer: FinalAnswer) -> bool:
         return False
     if answer.recommendations or answer.clarification or answer.not_found:
         return False
+    return not _lookup_only(turn)
+
+
+def _lookup_only(turn: _Turn) -> bool:
     used = {t["name"] for t in turn.tools_used if t["ok"]}
-    return not used <= NO_RECOMMENDATION_TOOLS
+    return used <= NO_RECOMMENDATION_TOOLS
+
+
+def _needs_fallback(
+    turn: _Turn, answer: FinalAnswer, recommendations: list[dict[str, Any]]
+) -> bool:
+    """The model gave no usable recommendation although the last search returned products."""
+    if recommendations or turn.vague_blocked or not turn.last_search_cards:
+        return False
+    if answer.clarification or answer.not_found:
+        return False
+    return not _lookup_only(turn)
 
 
 def _problems_in(

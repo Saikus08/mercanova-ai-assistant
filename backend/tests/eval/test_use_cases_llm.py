@@ -89,7 +89,8 @@ def run_case(
     tools = [t["name"] for t in result.tools_used]
     print(
         f"\n[eval] {label}: stop={result.stop_reason.value} tools={tools} steps={result.steps} "
-        f"tokens={result.prompt_tokens}+{result.completion_tokens} seconds={seconds:.1f}"
+        f"tokens={result.prompt_tokens}+{result.completion_tokens} seconds={seconds:.1f} "
+        f"fallback_used={result.fallback_used}"
     )
     return result
 
@@ -104,6 +105,8 @@ def tool_names(loop: AgentLoop) -> list[str]:
 
 def test_use_case_1_recommends_headphones_within_budget(loop):
     result = run_case("use case 1", loop, USE_CASE_1, AgentState())
+    model_recommendations = 0 if result.fallback_used else len(result.recommendations)
+    print(f"[eval] use case 1: model_recommendations={model_recommendations}")
 
     assert "search_products" in [t["name"] for t in result.tools_used]
     assert result.stop_reason is StopReason.ANSWER
