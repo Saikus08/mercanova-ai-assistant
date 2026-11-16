@@ -17,6 +17,7 @@ def search_products(
     query: str,
     filters: SearchFilters,
     top_k: int = DEFAULT_TOP_K,
+    min_score: float = 0.0,
 ) -> list[SearchHit]:
     query = query.strip()
     if not query:
@@ -27,6 +28,7 @@ def search_products(
         raise
     except Exception as error:
         raise SearchUnavailable(f"Could not embed the query: {error}") from error
-    return searcher.search(
+    hits = searcher.search(
         vector, filters, max(MIN_TOP_K, min(top_k, MAX_TOP_K)), embedder.index_id
     )
+    return [hit for hit in hits if hit.score >= min_score]

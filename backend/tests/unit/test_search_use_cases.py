@@ -162,3 +162,43 @@ def test_search_keeps_unavailable_error_when_embedder_raises_it():
             "monitor",
             SearchFilters(),
         )
+
+
+class ScoredSearcher:
+    def __init__(self, scores: list[float]) -> None:
+        self._scores = scores
+
+    def search(self, vector, filters, top_k, index_id) -> list[SearchHit]:
+        return [SearchHit(f"MN-{i}", f"P{i}", score, None) for i, score in enumerate(self._scores)]
+
+
+def test_search_drops_hits_below_threshold_when_min_score_is_set():
+    searcher = ScoredSearcher([0.9, 0.7, 0.5, 0.3])
+
+    hits = search_products(FakeEmbedder(), searcher, "monitor", SearchFilters(), min_score=0.6)
+
+    assert [hit.score for hit in hits] == [0.9, 0.7]
+
+
+def test_search_keeps_hit_when_score_equals_threshold():
+    searcher = ScoredSearcher([0.8, 0.62, 0.61])
+
+    hits = search_products(FakeEmbedder(), searcher, "monitor", SearchFilters(), min_score=0.62)
+
+    assert [hit.score for hit in hits] == [0.8, 0.62]
+
+
+def test_search_keeps_every_hit_when_min_score_is_not_given():
+    searcher = ScoredSearcher([0.9, 0.1, 0.0])
+
+    hits = search_products(FakeEmbedder(), searcher, "monitor", SearchFilters())
+
+    assert len(hits) == 3
+
+
+def test_search_returns_empty_list_when_every_hit_is_below_threshold():
+    searcher = ScoredSearcher([0.5, 0.4])
+
+    hits = search_products(FakeEmbedder(), searcher, "monitor", SearchFilters(), min_score=0.62)
+
+    assert hits == []

@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # Applies to one request, which embeds one batch; a CPU batch of 32 took about 15 s.
     embedding_timeout_seconds: float = 120.0
     embedding_batch_size: int = 16
+    # Minimum cosine similarity for a search hit to be shown. Provisional: measured on 16 queries
+    # (catalog queries scored 0.661-0.776, off-catalog ones 0.494-0.588); tune with the evaluations.
+    search_min_similarity: float = 0.62
     # Course Excel, mounted read-only from ./data by docker compose.
     dataset_path: str = "/data/MercaNova_dataset_obligatorio_2.xlsx"
 
