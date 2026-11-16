@@ -2,8 +2,10 @@
 
 from collections.abc import Callable
 from decimal import Decimal
-from typing import Protocol
+from typing import Any, Protocol
 
+from app.application.agent.tool import ToolSpec
+from app.domain.agent import ChatMessage, ModelReply
 from app.domain.cart import CartLine, ProductStockInfo
 from app.domain.catalog import (
     CategoryGroup,
@@ -137,6 +139,21 @@ class EmbeddingModel(Protocol):
 
     def embed_query(self, text: str) -> list[float]:
         """Vector for one user query. Raises SearchUnavailable when the model fails."""
+        ...
+
+
+class ChatModel(Protocol):
+    def chat(
+        self,
+        messages: list[ChatMessage],
+        tools: list[ToolSpec],
+        response_schema: dict[str, Any] | None = None,
+    ) -> ModelReply:
+        """Send the messages and the tool specs and return the model reply.
+
+        With a ``response_schema`` the reply content must be JSON matching it and tools are not
+        offered. Raises LLMUnavailable when the model cannot answer.
+        """
         ...
 
 
