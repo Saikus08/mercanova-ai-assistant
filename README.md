@@ -27,6 +27,21 @@ Antes de `make seed` hay que copiar el Excel de la cátedra (`MercaNova_dataset_
 
 > **Estado actual:** hoy el compose levanta solo la base de datos y Ollama. Esta sección se completa cuando estén el backend y el frontend.
 
+## Ollama en la Mac: instalarlo directo es 30 veces más rápido
+
+Dentro de Docker, Ollama corre solo en CPU. En una Mac con Apple Silicon medimos unos 1 token por segundo con un modelo de 8 mil millones de parámetros, y un turno del asistente tardaba varios minutos. Con Ollama instalado directo en la Mac, que usa la GPU, medimos unos 33 tokens por segundo y un turno de 8 a 11 segundos.
+
+```bash
+brew install ollama
+OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 ollama serve    # o: brew services start ollama
+ollama pull llama3.1:8b && ollama pull nomic-embed-text
+docker compose stop ollama                                          # libera el puerto 11434
+export OLLAMA_BASE_URL=http://host.docker.internal:11434 LLM_MODEL=llama3.1:8b
+make up
+```
+
+Si no se instala nada, el `docker-compose.yml` levanta su propio Ollama y todo funciona igual, más lento. Por eso ese es el valor por defecto: quien clone el repositorio puede levantarlo sin instalar nada extra.
+
 ## Variables de entorno
 
 Toda la configuración se lee de variables de entorno. Ningún secreto se guarda en el repositorio.
@@ -41,6 +56,11 @@ Toda la configuración se lee de variables de entorno. Ningún secreto se guarda
 | `LLM_MODEL` | Modelo de chat (tiene que soportar herramientas) | `qwen3:8b` |
 | `EMBEDDING_MODEL` | Modelo para la búsqueda por significado | `nomic-embed-text` |
 | `AGENT_MAX_STEPS` | Máximo de llamadas a herramientas por respuesta | `6` |
+| `AGENT_HISTORY_MESSAGES` | Cuántos mensajes anteriores recibe el modelo en cada turno | `8` |
+| `LLM_TIMEOUT_SECONDS`, `LLM_TEMPERATURE`, `LLM_NUM_CTX` | Límite de espera por llamada al modelo, temperatura y tamaño de contexto | `120`, `0.1`, `8192` |
+| `LLM_THINK` | Activa o apaga el modo de razonamiento en los modelos que lo tienen (vacío usa el del modelo) | *(vacío)* |
+| `SEARCH_MIN_SIMILARITY` | Similitud mínima para mostrar un resultado de búsqueda | `0.62` |
+| `EMBEDDING_TIMEOUT_SECONDS`, `EMBEDDING_BATCH_SIZE` | Límite de espera y tamaño de lote al generar los vectores | `120`, `16` |
 | `LLM_API_KEY` | Solo si se usa un proveedor pago | *(vacío)* |
 | `STT_MODEL`, `STT_LANGUAGE` | Configuración de voz a texto | `small`, `es` |
 | `DATASET_PATH` | Ruta del Excel de la cátedra dentro del contenedor | `/data/MercaNova_dataset_obligatorio_2.xlsx` |
