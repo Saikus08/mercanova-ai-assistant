@@ -246,3 +246,31 @@ NAMES = ["search_products", "start_checkout", "get_price"]
 )
 def test_leaked_tool_names(text, expected):
     assert leaked_tool_names(text, NAMES) == expected
+
+
+# --- numbers that cannot be compared must never crash a turn -----------------------------
+
+HUGE = "9" * 40  # e.g. a pasted tracking code: too many digits for cents arithmetic
+
+
+def test_a_huge_number_typed_by_the_customer_does_not_crash_the_price_filter_guard():
+    assert ungrounded_price_filters({"max_price": 200}, [f"código {HUGE}"]) == ["max_price"]
+
+
+def test_a_huge_number_typed_by_the_customer_does_not_crash_the_amount_check():
+    assert ungrounded_amounts("Cuesta USD 200.", numbers_in_text(f"código {HUGE}")) == [D("200")]
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan"), 1e400, 10**40])
+def test_a_non_finite_or_absurd_price_filter_is_flagged_instead_of_crashing(value):
+    assert ungrounded_price_filters({"max_price": value}, ["hasta 200 dólares"]) == ["max_price"]
+
+
+def test_an_absurd_amount_in_the_reply_is_ungrounded_instead_of_crashing():
+    reply = f"Cuesta USD {HUGE}."
+
+    assert len(ungrounded_amounts(reply, {D("200")})) == 1
+
+
+def test_a_huge_amount_in_the_allowed_numbers_is_ignored_not_fatal():
+    assert ungrounded_amounts("Cuesta USD 200.", {D(HUGE), D("200")}) == []
