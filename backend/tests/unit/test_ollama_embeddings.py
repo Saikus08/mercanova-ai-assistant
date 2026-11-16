@@ -124,3 +124,46 @@ def test_index_id_names_the_model_and_the_prefix_scheme():
     assert adapter(lambda request: httpx.Response(200)).index_id == (
         "nomic-embed-text+task-prefix-v1"
     )
+
+
+def _malformed_cases():
+    good = vector()
+    return {
+        "non-json body": httpx.Response(200, content=b"<html>oops</html>"),
+        "json list body": httpx.Response(200, json=[1, 2]),
+        "embeddings is a dict": httpx.Response(200, json={"embeddings": {"a": good}}),
+        "item is null": httpx.Response(200, json={"embeddings": [None]}),
+        "item is a string": httpx.Response(200, json={"embeddings": ["abc"]}),
+        "element is a string": httpx.Response(
+            200, json={"embeddings": [["x"] + good[1:]]}
+        ),
+        "element is null": httpx.Response(200, json={"embeddings": [[None] + good[1:]]}),
+        "element is a bool": httpx.Response(200, json={"embeddings": [[True] + good[1:]]}),
+    }
+
+
+@pytest.mark.parametrize("name", list(_malformed_cases()))
+def test_embed_raises_unavailable_when_answer_is_malformed(name):
+    response = _malformed_cases()[name]
+
+    with pytest.raises(SearchUnavailable):
+        adapter(lambda request: response).embed_documents(["a"])
+
+
+def test_embed_converts_integers_to_floats_when_ollama_returns_them():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"embeddings": [[1] + [0] * (EMBEDDING_DIMENSIONS - 1)]})
+
+    [result] = adapter(handler).embed_documents(["a"])
+
+    assert result[0] == 1.0
+    assert all(isinstance(value, float) for value in result)
+
+
+def test_close_releases_the_http_client():
+    embeddings = adapter(lambda request: httpx.Response(200))
+
+    embeddings.close()
+
+    with pytest.raises(RuntimeError):
+        embeddings.embed_documents(["a"])

@@ -58,9 +58,12 @@ class EmbeddingModel(Protocol):
 
 class SemanticSearch(Protocol):
     def search(
-        self, vector: list[float], filters: SearchFilters, top_k: int
+        self, vector: list[float], filters: SearchFilters, top_k: int, index_id: str
     ) -> list[SearchHit]:
         """Active products nearest to the vector that pass the filters, best first.
+
+        Only vectors stored with the given ``index_id`` are compared, so stale vectors from an
+        older model or prefix scheme are never mixed with the query vector.
 
         Price and stock filters are evaluated against the database at query time.
         """

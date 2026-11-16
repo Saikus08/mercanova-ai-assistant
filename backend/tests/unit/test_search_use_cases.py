@@ -93,9 +93,11 @@ class FakeEmbedder:
 class FakeSearcher:
     def __init__(self) -> None:
         self.calls: list[tuple[list[float], SearchFilters, int]] = []
+        self.index_ids: list[str] = []
 
-    def search(self, vector, filters, top_k) -> list[SearchHit]:
+    def search(self, vector, filters, top_k, index_id) -> list[SearchHit]:
         self.calls.append((vector, filters, top_k))
+        self.index_ids.append(index_id)
         return [SearchHit("MN-001", "Vision 24", 0.9, None)]
 
 
@@ -109,6 +111,14 @@ def test_search_embeds_query_once_and_returns_hits_when_query_is_valid():
     assert embedder.document_calls == []
     assert searcher.calls == [([1.0, 0.0], filters, DEFAULT_TOP_K)]
     assert [hit.product_id for hit in hits] == ["MN-001"]
+
+
+def test_search_restricts_to_the_embedder_index_id_when_searching():
+    embedder, searcher = FakeEmbedder(), FakeSearcher()
+
+    search_products(embedder, searcher, "monitor", SearchFilters())
+
+    assert searcher.index_ids == [embedder.index_id]
 
 
 @pytest.mark.parametrize("query", ["", "   ", "\n\t"])

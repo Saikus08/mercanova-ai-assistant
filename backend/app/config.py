@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     database_url: str
     ollama_base_url: str = "http://ollama:11434"
     embedding_model: str = "nomic-embed-text"
-    embedding_timeout_seconds: float = 30.0
+    # Applies to one request, which embeds one batch; a CPU batch of 32 took about 15 s.
+    embedding_timeout_seconds: float = 120.0
+    embedding_batch_size: int = 16
     # Course Excel, mounted read-only from ./data by docker compose.
     dataset_path: str = "/data/MercaNova_dataset_obligatorio_2.xlsx"
 

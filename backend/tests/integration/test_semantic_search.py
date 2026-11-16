@@ -16,7 +16,7 @@ from app.adapters.persistence.orm.catalog import (
 )
 from app.adapters.persistence.orm.stock import Inventory, Price, Warehouse
 from app.adapters.persistence.semantic_search_repository import SqlAlchemySemanticSearch
-from app.domain.search import SearchFilters
+from app.domain.search import SearchFilters, SearchUnavailable
 
 pytestmark = pytest.mark.integration
 
@@ -119,7 +119,7 @@ def ids(hits) -> list[str]:
 
 
 def test_search_orders_hits_by_similarity_when_vectors_differ(db_session: Session):
-    hits = SqlAlchemySemanticSearch(db_session).search(QUERY, SearchFilters(), 5)
+    hits = SqlAlchemySemanticSearch(db_session).search(QUERY, SearchFilters(), 5, index_id=MODEL)
 
     # P4 is inactive; P3 and P5 are orthogonal to the query and tie, so product_id decides.
     assert ids(hits) == ["P1", "P2", "P3", "P5"]
@@ -131,13 +131,15 @@ def test_search_orders_hits_by_similarity_when_vectors_differ(db_session: Sessio
 
 
 def test_search_limits_results_when_top_k_is_smaller_than_matches(db_session: Session):
-    hits = SqlAlchemySemanticSearch(db_session).search(QUERY, SearchFilters(), 2)
+    hits = SqlAlchemySemanticSearch(db_session).search(QUERY, SearchFilters(), 2, index_id=MODEL)
 
     assert ids(hits) == ["P1", "P2"]
 
 
 def test_search_excludes_inactive_products_when_they_are_the_nearest(db_session: Session):
-    hits = SqlAlchemySemanticSearch(db_session).search(vec((13, 1.0)), SearchFilters(), 5)
+    hits = SqlAlchemySemanticSearch(db_session).search(
+        vec((13, 1.0)), SearchFilters(), 5, index_id=MODEL
+    )
 
     assert "P4" not in ids(hits)
 
@@ -157,7 +159,7 @@ def test_search_excludes_inactive_products_when_they_are_the_nearest(db_session:
     ],
 )
 def test_search_applies_filters_when_they_are_given(db_session: Session, filters, expected):
-    hits = SqlAlchemySemanticSearch(db_session).search(QUERY, filters, 5)
+    hits = SqlAlchemySemanticSearch(db_session).search(QUERY, filters, 5, index_id=MODEL)
 
     assert ids(hits) == expected
 
@@ -167,31 +169,45 @@ def test_search_reads_price_at_query_time_when_price_changes_between_searches(
 ):
     searcher = SqlAlchemySemanticSearch(db_session)
     cheap = SearchFilters(max_price=Decimal("250"))
-    assert "P1" not in ids(searcher.search(QUERY, cheap, 5))
+    assert "P1" not in ids(searcher.search(QUERY, cheap, 5, index_id=MODEL))
 
     db_session.execute(
         update(Price).where(Price.product_id == "P1").values(current_price=Decimal("199"))
     )
 
-    assert ids(searcher.search(QUERY, cheap, 5))[0] == "P1"
+    assert ids(searcher.search(QUERY, cheap, 5, index_id=MODEL))[0] == "P1"
 
 
 def test_search_reads_stock_at_query_time_when_stock_changes_between_searches(
     db_session: Session,
 ):
     searcher = SqlAlchemySemanticSearch(db_session)
-    assert "P2" not in ids(searcher.search(QUERY, SearchFilters(in_stock=True), 5))
+    assert "P2" not in ids(searcher.search(QUERY, SearchFilters(in_stock=True), 5, index_id=MODEL))
 
     db_session.add(Inventory(product_id="P2", warehouse_id="W1", on_hand_qty=3, available_qty=3))
     db_session.flush()
 
-    assert "P2" in ids(searcher.search(QUERY, SearchFilters(in_stock=True), 5))
+    assert "P2" in ids(searcher.search(QUERY, SearchFilters(in_stock=True), 5, index_id=MODEL))
 
 
 def test_search_result_exposes_no_price_or_stock_when_hits_are_returned(db_session: Session):
-    hit = SqlAlchemySemanticSearch(db_session).search(QUERY, SearchFilters(), 1)[0]
+    hit = SqlAlchemySemanticSearch(db_session).search(QUERY, SearchFilters(), 1, index_id=MODEL)[0]
 
     assert set(vars(hit)) == {"product_id", "name", "score", "short_description"}
+
+
+def test_search_ignores_vectors_when_they_were_built_with_another_index_id(db_session: Session):
+    db_session.execute(
+        update(ProductEmbedding)
+        .where(ProductEmbedding.product_id == "P1")
+        .values(model="old-model+task-prefix-v0")
+    )
+    searcher = SqlAlchemySemanticSearch(db_session)
+
+    assert "P1" not in ids(searcher.search(QUERY, SearchFilters(), 5, index_id=MODEL))
+    assert ids(searcher.search(QUERY, SearchFilters(), 5, index_id="old-model+task-prefix-v0")) == [
+        "P1"
+    ]
 
 
 # --- Indexer ---------------------------------------------------------------------------------
@@ -298,3 +314,32 @@ def test_indexer_stores_raw_content_and_index_id_when_embedding(db_session: Sess
     assert stored.content.startswith("Name: Vision 24")
     assert "search_document" not in stored.content
     assert all("search_document" not in text for text in embedder.texts)
+
+
+class FailingOnCallEmbedder(CountingEmbedder):
+    def __init__(self, failing_call: int) -> None:
+        super().__init__()
+        self._failing_call = failing_call
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if len(self.batches) + 1 == self._failing_call:
+            raise SearchUnavailable("Ollama went away")
+        return super().embed_documents(texts)
+
+
+@pytest.mark.usefixtures("no_embeddings")
+def test_indexer_keeps_finished_batches_and_resumes_when_a_later_batch_fails(
+    db_session: Session,
+):
+    with pytest.raises(SearchUnavailable):
+        EmbeddingIndexer(db_session, FailingOnCallEmbedder(failing_call=2), batch_size=2).run()
+    db_session.rollback()  # what closing the session does
+
+    assert db_session.query(ProductEmbedding).count() == 2
+
+    embedder = CountingEmbedder()
+    summary = EmbeddingIndexer(db_session, embedder, batch_size=2).run()
+
+    assert (summary.total, summary.embedded, summary.skipped) == (5, 3, 2)
+    assert len(embedder.texts) == 3
+    assert db_session.query(ProductEmbedding).count() == 5

@@ -27,4 +27,6 @@ def search_products(
         raise
     except Exception as error:
         raise SearchUnavailable(f"Could not embed the query: {error}") from error
-    return searcher.search(vector, filters, max(MIN_TOP_K, min(top_k, MAX_TOP_K)))
+    return searcher.search(
+        vector, filters, max(MIN_TOP_K, min(top_k, MAX_TOP_K)), embedder.index_id
+    )

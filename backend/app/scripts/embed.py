@@ -24,9 +24,11 @@ from app.domain.search import SearchUnavailable
 logger = logging.getLogger("embed")
 
 
-def run_embed(session_factory: sessionmaker[Session], embedder: EmbeddingModel) -> IndexSummary:
+def run_embed(
+    session_factory: sessionmaker[Session], embedder: EmbeddingModel, batch_size: int
+) -> IndexSummary:
     with session_factory() as session:
-        return EmbeddingIndexer(session, embedder).run()
+        return EmbeddingIndexer(session, embedder, batch_size).run()
 
 
 def format_summary(summary: IndexSummary) -> str:
@@ -41,7 +43,7 @@ def main() -> int:
     )
     logger.info("Embedding with %s at %s", settings.embedding_model, settings.ollama_base_url)
     try:
-        summary = run_embed(get_session_factory(), embedder)
+        summary = run_embed(get_session_factory(), embedder, settings.embedding_batch_size)
     except SearchUnavailable as error:
         logger.error(
             "Ollama is unavailable (%s). Check that it is running and the model is pulled "
@@ -49,6 +51,8 @@ def main() -> int:
             error,
         )
         return 1
+    finally:
+        embedder.close()
     print(format_summary(summary))
     return 0
 

@@ -44,7 +44,9 @@ class SqlAlchemySemanticSearch:
     def __init__(self, session: Session) -> None:
         self._session = session
 
-    def search(self, vector: list[float], filters: SearchFilters, top_k: int) -> list[SearchHit]:
+    def search(
+        self, vector: list[float], filters: SearchFilters, top_k: int, index_id: str
+    ) -> list[SearchHit]:
         distance = ProductEmbedding.embedding.cosine_distance(vector)
         rows = self._session.execute(
             select(Product.product_id, Product.name, Product.short_description, distance)
@@ -52,7 +54,11 @@ class SqlAlchemySemanticSearch:
             .join(Brand, Brand.brand_id == Product.brand_id)
             .outerjoin(Price, Price.product_id == Product.product_id)
             .outerjoin(_stock, _stock.c.product_id == Product.product_id)
-            .where(Product.active.is_(True), *_conditions(filters))
+            .where(
+                Product.active.is_(True),
+                ProductEmbedding.model == index_id,
+                *_conditions(filters),
+            )
             .order_by(distance, Product.product_id)
             .limit(top_k)
         ).all()

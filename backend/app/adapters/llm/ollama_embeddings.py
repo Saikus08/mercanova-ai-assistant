@@ -24,6 +24,9 @@ class OllamaEmbeddings:
             base_url=base_url.rstrip("/"), timeout=timeout_seconds, transport=transport
         )
 
+    def close(self) -> None:
+        self._client.close()
+
     @property
     def index_id(self) -> str:
         return f"{self._model}+{PREFIX_SCHEME}"
@@ -41,23 +44,36 @@ class OllamaEmbeddings:
         try:
             response = self._client.post("/api/embed", json={"model": self._model, "input": texts})
             response.raise_for_status()
-            embeddings = response.json().get("embeddings")
+            body = response.json()
         except httpx.TimeoutException as error:
             raise SearchUnavailable("The embedding request timed out") from error
         except httpx.HTTPStatusError as error:
             status = error.response.status_code
             raise SearchUnavailable(f"Ollama answered HTTP {status}") from error
-        except (httpx.HTTPError, ValueError, AttributeError) as error:
+        except (httpx.HTTPError, ValueError) as error:
             raise SearchUnavailable(f"Could not reach Ollama: {error}") from error
+        return _parse_embeddings(body, expected=len(texts))
 
-        if not isinstance(embeddings, list):
-            raise SearchUnavailable("Ollama response has no embeddings")
-        if len(embeddings) != len(texts):
-            raise SearchUnavailable(
-                f"Ollama returned {len(embeddings)} vectors for {len(texts)} texts"
-            )
-        if any(len(vector) != EMBEDDING_DIMENSIONS for vector in embeddings):
+
+def _is_real_number(value: object) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _parse_embeddings(body: object, expected: int) -> list[list[float]]:
+    embeddings = body.get("embeddings") if isinstance(body, dict) else None
+    if not isinstance(embeddings, list):
+        raise SearchUnavailable("Ollama response has no embeddings")
+    if len(embeddings) != expected:
+        raise SearchUnavailable(f"Ollama returned {len(embeddings)} vectors for {expected} texts")
+    vectors: list[list[float]] = []
+    for item in embeddings:
+        if not isinstance(item, list):
+            raise SearchUnavailable("Ollama returned an embedding that is not a list")
+        if len(item) != EMBEDDING_DIMENSIONS:
             raise SearchUnavailable(
                 f"Unexpected embedding dimension, expected {EMBEDDING_DIMENSIONS}"
             )
-        return embeddings
+        if not all(_is_real_number(value) for value in item):
+            raise SearchUnavailable("Ollama returned an embedding with non-numeric values")
+        vectors.append([float(value) for value in item])
+    return vectors
