@@ -12,6 +12,7 @@ PRICE_FILTERS = ("min_price", "max_price")
 SEARCH_FILTERS = ("category", "subcategory", "brand", "min_price", "max_price")
 VAGUE_MAX_WORDS = 3
 _CENTS = Decimal("0.01")
+_MAX_AMOUNT = Decimal("1e12")  # far above any price; bigger numbers are codes or noise
 _NUMBER = r"\d+(?:[.,]\d+)*"
 _NUMBER_RE = re.compile(_NUMBER)
 _AMOUNT_RE = re.compile(
@@ -47,8 +48,19 @@ def _parse_number(token: str) -> Decimal | None:
         return None
 
 
-def _quantize(value: Decimal) -> Decimal:
+def _quantize(value: Decimal) -> Decimal | None:
+    """Value rounded to cents, or None when it is not a finite, plausible amount.
+
+    Decimal.quantize raises on numbers with too many digits and on infinity, and customer text
+    or model arguments can hold both; such numbers are never a price we can vouch for.
+    """
+    if not value.is_finite() or abs(value) >= _MAX_AMOUNT:
+        return None
     return value.quantize(_CENTS)
+
+
+def _cents(values: Iterable[Decimal]) -> set[Decimal]:
+    return {cents for value in values if (cents := _quantize(value)) is not None}
 
 
 def numbers_in_text(text: str) -> set[Decimal]:
@@ -81,13 +93,13 @@ def amounts_in_reply(text: str) -> list[Decimal]:
 
 
 def ungrounded_amounts(reply: str, allowed: set[Decimal]) -> list[Decimal]:
-    known = {_quantize(value) for value in allowed}
+    known = _cents(allowed)
     return [amount for amount in amounts_in_reply(reply) if _quantize(amount) not in known]
 
 
 def ungrounded_price_filters(arguments: dict[str, Any], user_texts: list[str]) -> list[str]:
     """Price filter arguments whose number the customer never wrote."""
-    stated = {_quantize(number) for text in user_texts for number in numbers_in_text(text)}
+    stated = _cents(number for text in user_texts for number in numbers_in_text(text))
     flagged = []
     for name in PRICE_FILTERS:
         value = arguments.get(name)

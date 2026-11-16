@@ -1071,3 +1071,19 @@ def test_degraded_turns_never_use_the_fallback():
     assert result.degraded
     assert result.fallback_used is False
     assert result.recommendations == []
+
+
+def test_a_huge_number_in_the_conversation_does_not_crash_any_turn():
+    model = ScriptedModel(
+        tool_reply("search_products", query="headphones", max_price=200),
+        text_reply(),
+        recommending(reply="Tengo opciones."),
+    )
+
+    result = run(
+        make_loop(model),
+        "Mi código es " + "9" * 40 + ", busco auriculares hasta 200 dólares",
+    )
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert result.degraded is False
