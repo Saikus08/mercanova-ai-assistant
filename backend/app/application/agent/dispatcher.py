@@ -32,6 +32,9 @@ class ToolResult:
     ok: bool
     payload: dict[str, Any]
     duration_ms: float
+    # True when the call itself was malformed (wrong shape, unknown or forbidden tool, bad
+    # arguments), as opposed to a tool that ran and failed for a business reason.
+    invalid: bool = False
 
 
 def _failure(error: str, hint: str, **extra: Any) -> dict[str, Any]:
@@ -44,36 +47,47 @@ class ToolDispatcher:
 
     def dispatch(self, name: str, arguments: object, context: ToolContext) -> ToolResult:
         started = time.perf_counter()
-        ok, payload = self._run(name, arguments, context)
-        return ToolResult(name, ok, payload, (time.perf_counter() - started) * 1000)
+        ok, payload, invalid = self._run(name, arguments, context)
+        return ToolResult(name, ok, payload, (time.perf_counter() - started) * 1000, invalid)
 
     def _run(
         self, name: str, arguments: object, context: ToolContext
-    ) -> tuple[bool, dict[str, Any]]:
+    ) -> tuple[bool, dict[str, Any], bool]:
         parsed = _as_object(arguments)
         if parsed is None:
-            return False, _failure(
-                "Tool arguments must be a JSON object",
-                "Send the arguments as a JSON object with the fields of the tool schema",
+            return (
+                False,
+                _failure(
+                    "Tool arguments must be a JSON object",
+                    "Send the arguments as a JSON object with the fields of the tool schema",
+                ),
+                True,
             )
         if PERMISSIONS.get(name) is Permission.FORBIDDEN:
-            return False, _failure(
-                f"Tool {name} is not available to the assistant",
-                "Purchases are confirmed or cancelled only by the user in the interface; "
-                "tell the user to use the buttons there",
+            return (
+                False,
+                _failure(
+                    f"Tool {name} is not available to the assistant",
+                    "Purchases are confirmed or cancelled only by the user in the interface; "
+                    "tell the user to use the buttons there",
+                ),
+                True,
             )
         tool = self._registry.get(name)
         if tool is None:
-            return False, self._unknown(name)
+            return False, self._unknown(name), True
         if "session_id" in parsed:
-            return False, _failure(
-                "session_id is set by the system", "Remove session_id from the arguments"
+            return (
+                False,
+                _failure("session_id is set by the system", "Remove session_id from the arguments"),
+                True,
             )
         try:
             args = tool.args_model.model_validate(parsed)
         except ValidationError as error:
-            return False, _invalid_arguments(tool, error)
-        return self._execute(tool, args, context)
+            return False, _invalid_arguments(tool, error), True
+        ok, payload = self._execute(tool, args, context)
+        return ok, payload, False
 
     def _unknown(self, name: str) -> dict[str, Any]:
         names = self._registry.names()
@@ -83,9 +97,7 @@ class ToolDispatcher:
             hint += f". Did you mean {close[0]}?"
         return _failure(f"Unknown tool: {name}", hint)
 
-    def _execute(
-        self, tool: Tool, args: Any, context: ToolContext
-    ) -> tuple[bool, dict[str, Any]]:
+    def _execute(self, tool: Tool, args: Any, context: ToolContext) -> tuple[bool, dict[str, Any]]:
         try:
             return True, tool.handler(args, context)
         except ProductNotFound as error:
