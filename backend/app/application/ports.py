@@ -124,6 +124,14 @@ class OrderRepository(Protocol):
         """Cancel a pending order. Stock is untouched because pending orders reserve nothing."""
         ...
 
+    def list_for_session(self, session_id: str) -> list[Order]:
+        """Every order of the session in any status, newest first, with the prices paid."""
+        ...
+
+    def get(self, order_id: str, session_id: str) -> Order:
+        """One order of the session. Raises OrderNotFound if it is unknown or another session's."""
+        ...
+
 
 class EmbeddingModel(Protocol):
     @property

@@ -62,3 +62,12 @@ def confirm_order(order_repository: OrderRepository, session_id: str, order_id: 
 
 def cancel_order(order_repository: OrderRepository, session_id: str, order_id: str) -> Order:
     return order_repository.cancel(order_id, session_id)
+
+
+def list_orders(order_repository: OrderRepository, session_id: str) -> list[Order]:
+    """Order history (RF-16). Lines keep the name and price copied when the order was created."""
+    return order_repository.list_for_session(session_id)
+
+
+def get_order(order_repository: OrderRepository, session_id: str, order_id: str) -> Order:
+    return order_repository.get(order_id, session_id)

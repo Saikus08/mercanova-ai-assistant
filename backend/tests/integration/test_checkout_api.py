@@ -599,3 +599,93 @@ def test_confirmed_order_cannot_be_cancelled(client: TestClient, db_session: Ses
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "ORDER_NOT_PENDING"
     assert order_status(db_session, order_id) == "confirmed"
+
+
+# --- history (RF-16) ---
+
+
+def list_orders(client: TestClient, headers=HEADERS):
+    return client.get("/api/orders", headers=headers)
+
+
+def get_order(client: TestClient, order_id: str, headers=HEADERS):
+    return client.get(f"/api/orders/{order_id}", headers=headers)
+
+
+def test_history_is_empty_for_a_new_session(client: TestClient):
+    response = list_orders(client)
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_history_lists_the_sessions_orders_newest_first_in_every_status(client: TestClient):
+    add(client, "MN-001", 1)
+    first = make_order(client)
+    second = make_order(client)
+    third = make_order(client)
+    confirm(client, first["order_id"])
+    cancel(client, second["order_id"])
+    add(client, "MN-002", 1, headers=OTHER)
+    make_order(client, headers=OTHER)
+
+    response = list_orders(client)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [(o["order_id"], o["status"]) for o in body] == [
+        (third["order_id"], "pending_confirmation"),
+        (second["order_id"], "cancelled"),
+        (first["order_id"], "confirmed"),
+    ]
+    assert body[2]["confirmed_at"] is not None
+    assert body[1]["confirmed_at"] is None
+    assert body[2]["items"] == first["items"]
+
+
+def test_history_shows_the_price_paid_even_if_the_price_changes_later(
+    client: TestClient, db_session: Session
+):
+    add(client, "MN-001", 2)
+    order_id = make_order(client)["order_id"]
+    confirm(client, order_id)
+    sql(db_session, "UPDATE prices SET current_price = 150.00 WHERE product_id = 'MN-001'")
+    sql(db_session, "UPDATE products SET name = 'Vision 24 v2' WHERE product_id = 'MN-001'")
+
+    (order,) = list_orders(client).json()
+
+    assert order["items"] == [
+        {
+            "product_id": "MN-001",
+            "name": "Vision 24",
+            "unit_price": 100.0,
+            "quantity": 2,
+            "line_total": 200.0,
+        }
+    ]
+    assert order["total"] == 200.0
+    assert get_order(client, order_id).json() == order
+
+
+def test_get_order_returns_the_same_body_as_checkout(client: TestClient):
+    add(client, "MN-001", 2)
+    add(client, "MN-002", 1)
+    created = make_order(client)
+
+    response = get_order(client, created["order_id"])
+
+    assert response.status_code == 200
+    assert response.json() == created
+
+
+def test_get_order_of_another_session_or_unknown_is_not_found(client: TestClient):
+    add(client, "MN-001", 1)
+    order_id = make_order(client)["order_id"]
+    for response in (get_order(client, order_id, OTHER), get_order(client, "ORD-19990101-0001")):
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "ORDER_NOT_FOUND"
+
+
+def test_history_requires_a_session(client: TestClient):
+    for response in (client.get("/api/orders"), client.get("/api/orders/ORD-1")):
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "MISSING_SESSION"

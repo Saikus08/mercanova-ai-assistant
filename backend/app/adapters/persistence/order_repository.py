@@ -164,6 +164,24 @@ class SqlAlchemyOrderRepository:
             self._session.rollback()
             raise
 
+    def list_for_session(self, session_id: str) -> list[Order]:
+        rows = self._session.scalars(
+            select(OrderRow)
+            .where(OrderRow.session_id == session_id)
+            .order_by(OrderRow.created_at.desc(), OrderRow.order_id.desc())
+        ).all()
+        # Two queries in total (orders, then all their lines), not one per order.
+        items = self._items_by_order([row.order_id for row in rows])
+        return [self._to_order(row, items.get(row.order_id, [])) for row in rows]
+
+    def get(self, order_id: str, session_id: str) -> Order:
+        row = self._session.scalars(
+            select(OrderRow).where(OrderRow.order_id == order_id, OrderRow.session_id == session_id)
+        ).one_or_none()
+        if row is None:
+            raise OrderNotFound
+        return self._to_order(row, self._items(order_id))
+
     def _lock_pending(self, order_id: str, session_id: str) -> OrderRow:
         """Lock the order row; it must belong to the session and still be pending."""
         row = self._session.execute(
@@ -179,18 +197,27 @@ class SqlAlchemyOrderRepository:
         return row
 
     def _items(self, order_id: str) -> list[OrderLine]:
+        return self._items_by_order([order_id]).get(order_id, [])
+
+    def _items_by_order(self, order_ids: list[str]) -> dict[str, list[OrderLine]]:
+        if not order_ids:
+            return {}
         rows = self._session.execute(
             select(
+                OrderItem.order_id,
                 OrderItem.product_id,
                 OrderItem.product_name,
                 OrderItem.unit_price,
                 OrderItem.quantity,
                 OrderItem.line_total,
             )
-            .where(OrderItem.order_id == order_id)
-            .order_by(OrderItem.product_id)
+            .where(OrderItem.order_id.in_(order_ids))
+            .order_by(OrderItem.order_id, OrderItem.product_id)
         ).all()
-        return [OrderLine(r[0], r[1], r[2], r[3], r[4]) for r in rows]
+        items: dict[str, list[OrderLine]] = {}
+        for r in rows:
+            items.setdefault(r[0], []).append(OrderLine(r[1], r[2], r[3], r[4], r[5]))
+        return items
 
     def _current_prices(self, product_ids: list[str]) -> dict[str, Decimal]:
         """Current price of the products that are still for sale."""
