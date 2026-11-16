@@ -367,3 +367,40 @@ def test_dispatch_hides_unexpected_failures_and_logs_without_arguments(caplog):
 def test_dispatch_never_raises_when_the_handler_raises_base_exceptions_subclasses():
     for error in (KeyError("x"), ZeroDivisionError(), TypeError("bad")):
         assert run_failing(error).ok is False
+
+
+# --- the result says whether the call itself was malformed (drives the loop's retry rule) ---
+
+
+@pytest.mark.parametrize(
+    ("name", "arguments"),
+    [
+        ("does_not_exist", {"product_id": "P1"}),
+        ("confirm_order", {}),
+        ("get_price", "not an object"),
+        ("get_price", {"product_id": "P1", "session_id": "x"}),
+        ("get_price", {"product_id": 5}),
+        ("get_price", {}),
+    ],
+)
+def test_result_is_marked_invalid_when_the_call_itself_is_malformed(name, arguments):
+    result = dispatcher().dispatch(name, arguments, CONTEXT)
+
+    assert result.ok is False
+    assert result.invalid is True
+
+
+def test_result_is_not_marked_invalid_when_the_tool_ran_fine():
+    result = dispatcher().dispatch("get_price", {"product_id": "P1"}, CONTEXT)
+
+    assert (result.ok, result.invalid) == (True, False)
+
+
+def test_result_is_not_marked_invalid_when_the_tool_fails_for_a_business_reason():
+    def fail(args, context):
+        raise ProductNotFound("P1")
+
+    failing = dispatcher(make_tool(handler=fail))
+    result = failing.dispatch("get_price", {"product_id": "P1"}, CONTEXT)
+
+    assert (result.ok, result.invalid) == (False, False)

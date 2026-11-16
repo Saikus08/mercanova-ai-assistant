@@ -18,9 +18,10 @@ ignore = ["B008"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not eval'"
 markers = [
     "integration: needs the PostgreSQL service from docker compose",
+    "eval: runs fixed use cases against the real Ollama model; not part of CI",
 ]
 filterwarnings = [
     # Starlette 1.x prefers the `httpx2` fork for its TestClient; `httpx` still works.
