@@ -12,6 +12,7 @@ from app.domain.catalog import (
     Specification,
     Warehouse,
 )
+from app.domain.search import SearchFilters, SearchHit
 
 
 class DatabaseProbe(Protocol):
@@ -38,3 +39,32 @@ class CatalogRepository(Protocol):
     def list_categories(self) -> list[CategoryGroup]: ...
 
     def list_warehouses(self) -> list[Warehouse]: ...
+
+
+class EmbeddingModel(Protocol):
+    @property
+    def index_id(self) -> str:
+        """Identifies how vectors are produced; a change makes stored vectors stale."""
+        ...
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """One vector per document, in order. Raises SearchUnavailable when the model fails."""
+        ...
+
+    def embed_query(self, text: str) -> list[float]:
+        """Vector for one user query. Raises SearchUnavailable when the model fails."""
+        ...
+
+
+class SemanticSearch(Protocol):
+    def search(
+        self, vector: list[float], filters: SearchFilters, top_k: int, index_id: str
+    ) -> list[SearchHit]:
+        """Active products nearest to the vector that pass the filters, best first.
+
+        Only vectors stored with the given ``index_id`` are compared, so stale vectors from an
+        older model or prefix scheme are never mixed with the query vector.
+
+        Price and stock filters are evaluated against the database at query time.
+        """
+        ...
