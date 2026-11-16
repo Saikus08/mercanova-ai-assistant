@@ -198,11 +198,12 @@ def test_search_result_exposes_no_price_or_stock_when_hits_are_returned(db_sessi
 
 
 class CountingEmbedder:
-    def __init__(self) -> None:
+    def __init__(self, index_id: str = MODEL) -> None:
+        self.index_id = index_id
         self.texts: list[str] = []
         self.batches: list[int] = []
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
         self.texts.extend(texts)
         self.batches.append(len(texts))
         return [vec((len(text) % 700, 1.0)) for text in texts]
@@ -218,7 +219,7 @@ def no_embeddings(db_session: Session) -> None:
 def test_indexer_embeds_every_product_when_none_is_indexed(db_session: Session):
     embedder = CountingEmbedder()
 
-    summary = EmbeddingIndexer(db_session, embedder, MODEL).run()
+    summary = EmbeddingIndexer(db_session, embedder).run()
 
     assert (summary.total, summary.embedded, summary.skipped) == (5, 5, 0)
     assert db_session.query(ProductEmbedding).count() == 5
@@ -230,17 +231,17 @@ def test_indexer_sends_batches_of_at_most_batch_size_when_there_are_many_product
 ):
     embedder = CountingEmbedder()
 
-    EmbeddingIndexer(db_session, embedder, MODEL, batch_size=2).run()
+    EmbeddingIndexer(db_session, embedder, batch_size=2).run()
 
     assert embedder.batches == [2, 2, 1]
 
 
 @pytest.mark.usefixtures("no_embeddings")
 def test_indexer_embeds_nothing_when_run_a_second_time(db_session: Session):
-    EmbeddingIndexer(db_session, CountingEmbedder(), MODEL).run()
+    EmbeddingIndexer(db_session, CountingEmbedder()).run()
     embedder = CountingEmbedder()
 
-    summary = EmbeddingIndexer(db_session, embedder, MODEL).run()
+    summary = EmbeddingIndexer(db_session, embedder).run()
 
     assert (summary.total, summary.embedded, summary.skipped) == (5, 0, 5)
     assert embedder.texts == []
@@ -248,13 +249,13 @@ def test_indexer_embeds_nothing_when_run_a_second_time(db_session: Session):
 
 @pytest.mark.usefixtures("no_embeddings")
 def test_indexer_reembeds_only_the_changed_product_when_description_changes(db_session: Session):
-    EmbeddingIndexer(db_session, CountingEmbedder(), MODEL).run()
+    EmbeddingIndexer(db_session, CountingEmbedder()).run()
     db_session.execute(
         update(Product).where(Product.product_id == "P3").values(description="Now with ANC")
     )
     embedder = CountingEmbedder()
 
-    summary = EmbeddingIndexer(db_session, embedder, MODEL).run()
+    summary = EmbeddingIndexer(db_session, embedder).run()
 
     assert (summary.embedded, summary.skipped) == (1, 4)
     assert "Description: Now with ANC" in embedder.texts[0]
@@ -263,10 +264,10 @@ def test_indexer_reembeds_only_the_changed_product_when_description_changes(db_s
 
 
 @pytest.mark.usefixtures("no_embeddings")
-def test_indexer_reembeds_everything_when_model_changes(db_session: Session):
-    EmbeddingIndexer(db_session, CountingEmbedder(), MODEL).run()
+def test_indexer_reembeds_everything_when_index_id_changes(db_session: Session):
+    EmbeddingIndexer(db_session, CountingEmbedder()).run()
 
-    summary = EmbeddingIndexer(db_session, CountingEmbedder(), "other-model").run()
+    summary = EmbeddingIndexer(db_session, CountingEmbedder("other-model")).run()
 
     assert (summary.embedded, summary.skipped) == (5, 0)
     models = db_session.scalars(select(ProductEmbedding.model).distinct()).all()
@@ -278,8 +279,22 @@ def test_indexer_stores_no_price_or_stock_when_building_content(db_session: Sess
     db_session.execute(
         update(Product).where(Product.product_id == "P1").values(rating=Decimal("4.9"))
     )
-    EmbeddingIndexer(db_session, CountingEmbedder(), MODEL).run()
+    EmbeddingIndexer(db_session, CountingEmbedder()).run()
 
     for content in db_session.scalars(select(ProductEmbedding.content)):
         lowered = content.lower()
         assert all(word not in lowered for word in ("price", "stock", "rating", "300", "4.9"))
+
+
+@pytest.mark.usefixtures("no_embeddings")
+def test_indexer_stores_raw_content_and_index_id_when_embedding(db_session: Session):
+    embedder = CountingEmbedder("model+task-prefix-v1")
+
+    EmbeddingIndexer(db_session, embedder).run()
+
+    stored = db_session.get(ProductEmbedding, "P1")
+    assert stored is not None
+    assert stored.model == "model+task-prefix-v1"
+    assert stored.content.startswith("Name: Vision 24")
+    assert "search_document" not in stored.content
+    assert all("search_document" not in text for text in embedder.texts)

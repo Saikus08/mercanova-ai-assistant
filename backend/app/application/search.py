@@ -22,7 +22,7 @@ def search_products(
     if not query:
         raise ValueError("The search query must not be blank")
     try:
-        [vector] = embedder.embed([query])
+        vector = embedder.embed_query(query)
     except SearchUnavailable:
         raise
     except Exception as error:

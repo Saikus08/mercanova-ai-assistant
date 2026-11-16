@@ -5,6 +5,11 @@ import httpx
 from app.adapters.persistence.orm.catalog import EMBEDDING_DIMENSIONS
 from app.domain.search import SearchUnavailable
 
+# nomic-embed-text expects a task prefix on every input (see its model card).
+DOCUMENT_PREFIX = "search_document: "
+QUERY_PREFIX = "search_query: "
+PREFIX_SCHEME = "task-prefix-v1"
+
 
 class OllamaEmbeddings:
     def __init__(
@@ -19,7 +24,18 @@ class OllamaEmbeddings:
             base_url=base_url.rstrip("/"), timeout=timeout_seconds, transport=transport
         )
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
+    @property
+    def index_id(self) -> str:
+        return f"{self._model}+{PREFIX_SCHEME}"
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return self._embed([DOCUMENT_PREFIX + text for text in texts])
+
+    def embed_query(self, text: str) -> list[float]:
+        [vector] = self._embed([QUERY_PREFIX + text])
+        return vector
+
+    def _embed(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
         try:

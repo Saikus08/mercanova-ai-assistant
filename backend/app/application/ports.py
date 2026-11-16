@@ -42,8 +42,17 @@ class CatalogRepository(Protocol):
 
 
 class EmbeddingModel(Protocol):
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        """One vector per text, in order. Raises SearchUnavailable when the model fails."""
+    @property
+    def index_id(self) -> str:
+        """Identifies how vectors are produced; a change makes stored vectors stale."""
+        ...
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """One vector per document, in order. Raises SearchUnavailable when the model fails."""
+        ...
+
+    def embed_query(self, text: str) -> list[float]:
+        """Vector for one user query. Raises SearchUnavailable when the model fails."""
         ...
 
 

@@ -25,12 +25,10 @@ class EmbeddingIndexer:
         self,
         session: Session,
         embedder: EmbeddingModel,
-        model: str,
         batch_size: int = DEFAULT_BATCH_SIZE,
     ) -> None:
         self._session = session
         self._embedder = embedder
-        self._model = model
         self._batch_size = batch_size
 
     def run(self) -> IndexSummary:
@@ -47,11 +45,11 @@ class EmbeddingIndexer:
         pending = [
             (product_id, content)
             for product_id, content in documents.items()
-            if stored.get(product_id) != (content, self._model)
+            if stored.get(product_id) != (content, self._embedder.index_id)
         ]
         for start in range(0, len(pending), self._batch_size):
             batch = pending[start : start + self._batch_size]
-            vectors = self._embedder.embed([content for _, content in batch])
+            vectors = self._embedder.embed_documents([content for _, content in batch])
             self._upsert(batch, vectors)
             self._session.commit()  # keep finished batches if a later one fails
         return IndexSummary(len(documents), len(pending), len(documents) - len(pending))
@@ -88,7 +86,7 @@ class EmbeddingIndexer:
                     "product_id": product_id,
                     "content": content,
                     "embedding": vector,
-                    "model": self._model,
+                    "model": self._embedder.index_id,
                 }
                 for (product_id, content), vector in zip(batch, vectors, strict=True)
             ]

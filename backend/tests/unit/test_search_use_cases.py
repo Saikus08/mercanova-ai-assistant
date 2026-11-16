@@ -73,14 +73,21 @@ def test_document_skips_empty_fields_when_values_are_missing():
 
 class FakeEmbedder:
     def __init__(self, error: Exception | None = None) -> None:
-        self.calls: list[list[str]] = []
+        self.calls: list[str] = []
+        self.document_calls: list[list[str]] = []
         self._error = error
 
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        self.calls.append(texts)
+    index_id = "fake+v1"
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        self.document_calls.append(texts)
+        return [[1.0, 0.0] for _ in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        self.calls.append(text)
         if self._error:
             raise self._error
-        return [[1.0, 0.0] for _ in texts]
+        return [1.0, 0.0]
 
 
 class FakeSearcher:
@@ -98,7 +105,8 @@ def test_search_embeds_query_once_and_returns_hits_when_query_is_valid():
 
     hits = search_products(embedder, searcher, "  monitor for gaming ", filters)
 
-    assert embedder.calls == [["monitor for gaming"]]
+    assert embedder.calls == ["monitor for gaming"]
+    assert embedder.document_calls == []
     assert searcher.calls == [([1.0, 0.0], filters, DEFAULT_TOP_K)]
     assert [hit.product_id for hit in hits] == ["MN-001"]
 
