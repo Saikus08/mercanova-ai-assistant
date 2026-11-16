@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate pull-models seed embed test test-backend test-frontend lint
+.PHONY: up down logs migrate pull-models seed embed test test-backend test-frontend lint eval
 
 up:            ## Start all services
 	docker compose up -d --build
@@ -29,6 +29,9 @@ test-backend:
 
 test-frontend:
 	cd frontend && npm test -- --run
+
+eval:          ## Run the use cases against the real Ollama model (read only; not part of CI)
+	docker compose exec -e RUN_EVAL=1 backend pytest -m eval -s
 
 lint:          ## Same checks as the CI lint steps
 	docker compose exec backend ruff check .

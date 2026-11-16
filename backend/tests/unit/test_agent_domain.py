@@ -51,6 +51,7 @@ def test_role_and_stop_reason_values():
         "MAX_STEPS",
         "LLM_UNAVAILABLE",
         "INVALID_TOOL_CALLS",
+        "INVALID_ANSWER",
         "UNGROUNDED_ANSWER",
     }
 
