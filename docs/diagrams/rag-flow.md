@@ -58,3 +58,79 @@ sequenceDiagram
 ```
 
 El precio y el stock del resultado los consulta después la herramienta de precio y stock, siempre en el mismo turno.
+
+## 3. Clases y capas
+
+Cada capa solo conoce a la de adentro a través de una interfaz (puerto). El dominio no importa FastAPI, SQLAlchemy ni Ollama. Los adaptadores implementan los puertos.
+
+```mermaid
+classDiagram
+    direction LR
+
+    namespace Dominio {
+        class SearchFilters {
+            category
+            subcategory
+            brand
+            min_price
+            max_price
+            in_stock
+        }
+        class SearchHit {
+            product_id
+            name
+            score
+            short_description
+        }
+        class ProductDocumentSource {
+            name
+            brand
+            category
+            description
+            key_features
+            recommended_for
+            tags
+        }
+        class SearchUnavailable
+    }
+
+    namespace Aplicacion {
+        class search_products {
+            <<caso de uso>>
+            query, filters, top_k
+        }
+        class EmbeddingModel {
+            <<puerto>>
+            index_id
+            embed_documents(texts)
+            embed_query(text)
+        }
+        class SemanticSearch {
+            <<puerto>>
+            search(vector, filters, top_k, index_id)
+        }
+    }
+
+    namespace Adaptadores {
+        class OllamaEmbeddings {
+            DOCUMENT_PREFIX
+            QUERY_PREFIX
+        }
+        class SqlAlchemySemanticSearch
+        class EmbeddingIndexer {
+            run()
+        }
+    }
+
+    search_products ..> EmbeddingModel : usa
+    search_products ..> SemanticSearch : usa
+    search_products ..> SearchFilters
+    search_products ..> SearchHit : devuelve
+    EmbeddingModel <|.. OllamaEmbeddings : implementa
+    SemanticSearch <|.. SqlAlchemySemanticSearch : implementa
+    EmbeddingIndexer ..> EmbeddingModel : usa
+    EmbeddingIndexer ..> ProductDocumentSource : arma el texto
+    OllamaEmbeddings ..> SearchUnavailable : lanza
+```
+
+`ProductDocumentSource` no tiene precio, stock ni puntaje: es lo que garantiza que esos datos nunca entren al índice. El prefijo del modelo (`search_document:` y `search_query:`) vive solo en `OllamaEmbeddings`.
