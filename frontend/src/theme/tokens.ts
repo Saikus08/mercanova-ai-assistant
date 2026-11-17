@@ -154,6 +154,9 @@ export const size = {
   cartSummaryWidth: '320px',
   /** Checkout: width of the form column. */
   checkoutWidth: '640px',
+  /** Chat: width of the conversation column and maximum width of a text bubble. */
+  chatWidth: '960px',
+  chatBubbleMaxWidth: '640px',
 } as const
 
 export const zIndex = {

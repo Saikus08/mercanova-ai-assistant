@@ -167,8 +167,8 @@ export interface ComparisonAttribute {
   group: string
   name: string
   unit: string | null
-  /** Value per product, keyed by product_id. */
-  values: Record<string, string>
+  /** Value per product, keyed by product_id. null when the product does not have that attribute. */
+  values: Record<string, string | null>
 }
 
 /** Response of GET /api/products/compare. */
@@ -277,8 +277,19 @@ export interface ToolUsage {
   args: Record<string, unknown>
 }
 
+/**
+ * Product as the assistant's blocks carry it. Price and stock come from a tool of the same turn;
+ * the presentation fields can be null when the catalog has no value for them.
+ */
+export interface ChatProduct extends Omit<ProductSummary, 'sku' | 'image_url' | 'rating' | 'review_count'> {
+  sku: string | null
+  image_url: string | null
+  rating: number | null
+  review_count: number | null
+}
+
 export interface ProductRecommendation {
-  product: ProductSummary
+  product: ChatProduct
   reason: string
 }
 
@@ -287,8 +298,11 @@ export interface ProductRecommendationsBlock {
   items: ProductRecommendation[]
 }
 
-export interface ComparisonBlock extends ProductComparison {
+/** Same shape as GET /api/products/compare, built from the compare_products tool result. */
+export interface ComparisonBlock {
   type: 'comparison'
+  products: ChatProduct[]
+  attributes: ComparisonAttribute[]
 }
 
 export interface ClarificationBlock {
@@ -302,10 +316,13 @@ export interface CartUpdatedBlock {
   cart: Cart
 }
 
-/** Opens the purchase confirmation modal. Only the user confirms the order. */
+/**
+ * The cart is ready to pay. It carries no order: the user enters their data and confirms in the
+ * checkout screen (decision 0008). Only the user confirms the order.
+ */
 export interface CheckoutDraftBlock {
   type: 'checkout_draft'
-  order: Order
+  cart: Cart
 }
 
 export interface NotFoundBlock {

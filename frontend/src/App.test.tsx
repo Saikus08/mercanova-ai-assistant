@@ -9,8 +9,11 @@ import type { Order } from './api/types'
 import { CartApiProvider } from './features/cart/CartApiProvider'
 import { CartProvider } from './features/cart/CartProvider'
 import { CatalogApiProvider } from './features/catalog/CatalogApiProvider'
+import { ChatApiProvider } from './features/chat/ChatApiProvider'
+import { ChatProvider } from './features/chat/ChatProvider'
 import { CheckoutApiProvider } from './features/checkout/CheckoutApiProvider'
 import { createFakeCartApi } from './test/fakeCartApi'
+import { createFakeChatApi } from './test/fakeChatApi'
 import { createFakeOrdersApi } from './test/fakeOrdersApi'
 import { confirmedOrder } from './test/orderFixtures'
 import { createFakeWarehousesApi } from './test/fakeWarehousesApi'
@@ -20,11 +23,15 @@ function renderAt(path: string, cartApi: CartApi = createFakeCartApi(), orders: 
     <CatalogApiProvider api={createMockCatalogApi()}>
       <CartApiProvider api={cartApi}>
         <CheckoutApiProvider ordersApi={createFakeOrdersApi(cartApi, orders)} warehousesApi={createFakeWarehousesApi()}>
-          <CartProvider>
-            <MemoryRouter initialEntries={[path]}>
-              <App />
-            </MemoryRouter>
-          </CartProvider>
+          <ChatApiProvider api={createFakeChatApi()}>
+            <CartProvider>
+              <ChatProvider>
+                <MemoryRouter initialEntries={[path]}>
+                  <App />
+                </MemoryRouter>
+              </ChatProvider>
+            </CartProvider>
+          </ChatApiProvider>
         </CheckoutApiProvider>
       </CartApiProvider>
     </CatalogApiProvider>,
@@ -32,6 +39,13 @@ function renderAt(path: string, cartApi: CartApi = createFakeCartApi(), orders: 
 }
 
 describe('App routes', () => {
+  it('shows the assistant on /chat', () => {
+    renderAt('/chat')
+
+    expect(screen.getByRole('heading', { name: 'Asistente de compras' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Asistente' })).toHaveAttribute('aria-current', 'page')
+  })
+
   it('shows the catalog on /', async () => {
     renderAt('/')
 

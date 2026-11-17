@@ -1,0 +1,60 @@
+/* Wide comparisons scroll sideways instead of breaking the chat layout. */
+.wrapper {
+  overflow-x: auto;
+  border: var(--size-border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.caption {
+  padding: var(--space-3) var(--space-4);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--size-border-width) solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.corner {
+  background: var(--color-surface-muted);
+}
+
+.product {
+  background: var(--color-surface-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.link {
+  display: block;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.brand,
+.group {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+.attribute {
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}

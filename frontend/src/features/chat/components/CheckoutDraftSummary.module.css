@@ -1,0 +1,39 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--size-cart-summary-width);
+}
+
+.title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-sm);
+}
+
+.item,
+.total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.total {
+  padding-top: var(--space-2);
+  border-top: var(--size-border-width) solid var(--color-border);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hint {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
