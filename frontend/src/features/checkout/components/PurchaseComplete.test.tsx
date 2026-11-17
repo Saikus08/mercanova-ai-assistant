@@ -29,6 +29,16 @@ describe('PurchaseComplete', () => {
     expect(screen.getByText('Flux Vision 24')).toBeInTheDocument()
   })
 
+  it('links to the order history', () => {
+    render(
+      <MemoryRouter>
+        <PurchaseComplete order={order} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('link', { name: 'Ver mis compras' })).toHaveAttribute('href', '/orders')
+  })
+
   it('links to the catalog by default and accepts another target', () => {
     const { rerender } = render(
       <MemoryRouter>

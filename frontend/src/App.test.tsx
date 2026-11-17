@@ -5,19 +5,21 @@ import { describe, expect, it } from 'vitest'
 import { createMockCatalogApi } from './api/mocks/mockCatalogApi'
 import { App } from './App'
 import type { CartApi } from './api/cart'
+import type { Order } from './api/types'
 import { CartApiProvider } from './features/cart/CartApiProvider'
 import { CartProvider } from './features/cart/CartProvider'
 import { CatalogApiProvider } from './features/catalog/CatalogApiProvider'
 import { CheckoutApiProvider } from './features/checkout/CheckoutApiProvider'
 import { createFakeCartApi } from './test/fakeCartApi'
 import { createFakeOrdersApi } from './test/fakeOrdersApi'
+import { confirmedOrder } from './test/orderFixtures'
 import { createFakeWarehousesApi } from './test/fakeWarehousesApi'
 
-function renderAt(path: string, cartApi: CartApi = createFakeCartApi()) {
+function renderAt(path: string, cartApi: CartApi = createFakeCartApi(), orders: Order[] = []) {
   return render(
     <CatalogApiProvider api={createMockCatalogApi()}>
       <CartApiProvider api={cartApi}>
-        <CheckoutApiProvider ordersApi={createFakeOrdersApi(cartApi)} warehousesApi={createFakeWarehousesApi()}>
+        <CheckoutApiProvider ordersApi={createFakeOrdersApi(cartApi, orders)} warehousesApi={createFakeWarehousesApi()}>
           <CartProvider>
             <MemoryRouter initialEntries={[path]}>
               <App />
@@ -64,6 +66,19 @@ describe('App routes', () => {
     expect(await screen.findByRole('button', { name: 'Revisar compra' })).toBeInTheDocument()
   })
 
+  it('shows the order history on /orders', async () => {
+    renderAt('/orders', createFakeCartApi(), [confirmedOrder])
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Mis compras' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'ORD-20261112-0002' })).toBeInTheDocument()
+  })
+
+  it('shows an order on /orders/:orderId', async () => {
+    renderAt('/orders/ORD-20261112-0002', createFakeCartApi(), [confirmedOrder])
+
+    expect(await screen.findByRole('heading', { level: 1, name: /ORD-20261112-0002/ })).toBeInTheDocument()
+  })
+
   it('goes from the cart to the checkout with "Continuar con la compra"', async () => {
     const user = userEvent.setup()
     renderAt('/cart', createFakeCartApi({ 'MN-MON-0001': 1 }))
@@ -71,6 +86,14 @@ describe('App routes', () => {
     await user.click(await screen.findByRole('button', { name: 'Continuar con la compra' }))
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' })).toBeInTheDocument()
+  })
+})
+
+describe('App header orders link', () => {
+  it('links to the order history', () => {
+    renderAt('/')
+
+    expect(screen.getByRole('link', { name: 'Mis compras' })).toHaveAttribute('href', '/orders')
   })
 })
 
