@@ -1,6 +1,7 @@
 """Pure domain objects of the agent loop: messages and explicit conversation state."""
 
 import dataclasses
+import json
 
 import pytest
 
@@ -155,3 +156,24 @@ def test_describe_for_a_filled_state_numbers_products_in_shown_order():
     assert "Step: 3" in text
     assert "not stated yet" not in text
     assert "No products shown yet" not in text
+
+
+def test_state_round_trips_through_a_dict():
+    state = AgentState(step=4)
+    state.set_goal("a laptop for school")
+    state.record_products([product("P-2", "Second"), product("P-1", "First")])
+    state.record_tool("search_products", ok=True)
+    state.record_tool("get_price", ok=False)
+
+    data = state.to_dict()
+
+    assert json.loads(json.dumps(data)) == data
+    assert AgentState.from_dict(data) == state
+
+
+def test_state_from_dict_tolerates_missing_keys():
+    assert AgentState.from_dict({}) == AgentState()
+    assert AgentState.from_dict({"goal": "a phone"}) == AgentState(goal="a phone")
+    assert AgentState.from_dict({"step": 2, "tools_used": [{"name": "a"}]}) == AgentState(
+        step=2, tools_used=[ToolUse("a", False, 0)]
+    )
