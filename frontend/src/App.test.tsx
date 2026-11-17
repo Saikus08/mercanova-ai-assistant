@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { createMockCatalogApi } from './api/mocks/mockCatalogApi'
@@ -7,17 +8,22 @@ import type { CartApi } from './api/cart'
 import { CartApiProvider } from './features/cart/CartApiProvider'
 import { CartProvider } from './features/cart/CartProvider'
 import { CatalogApiProvider } from './features/catalog/CatalogApiProvider'
+import { CheckoutApiProvider } from './features/checkout/CheckoutApiProvider'
 import { createFakeCartApi } from './test/fakeCartApi'
+import { createFakeOrdersApi } from './test/fakeOrdersApi'
+import { createFakeWarehousesApi } from './test/fakeWarehousesApi'
 
 function renderAt(path: string, cartApi: CartApi = createFakeCartApi()) {
   return render(
     <CatalogApiProvider api={createMockCatalogApi()}>
       <CartApiProvider api={cartApi}>
-        <CartProvider>
-          <MemoryRouter initialEntries={[path]}>
-            <App />
-          </MemoryRouter>
-        </CartProvider>
+        <CheckoutApiProvider ordersApi={createFakeOrdersApi(cartApi)} warehousesApi={createFakeWarehousesApi()}>
+          <CartProvider>
+            <MemoryRouter initialEntries={[path]}>
+              <App />
+            </MemoryRouter>
+          </CartProvider>
+        </CheckoutApiProvider>
       </CartApiProvider>
     </CatalogApiProvider>,
   )
@@ -49,6 +55,22 @@ describe('App routes', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Carrito' })).toBeInTheDocument()
     expect(await screen.findByRole('list', { name: 'Productos del carrito' })).toBeInTheDocument()
+  })
+
+  it('shows the checkout on /checkout', async () => {
+    renderAt('/checkout', createFakeCartApi({ 'MN-MON-0001': 1 }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Revisar compra' })).toBeInTheDocument()
+  })
+
+  it('goes from the cart to the checkout with "Continuar con la compra"', async () => {
+    const user = userEvent.setup()
+    renderAt('/cart', createFakeCartApi({ 'MN-MON-0001': 1 }))
+
+    await user.click(await screen.findByRole('button', { name: 'Continuar con la compra' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Finalizar compra' })).toBeInTheDocument()
   })
 })
 
