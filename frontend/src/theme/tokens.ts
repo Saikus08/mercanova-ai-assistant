@@ -152,6 +152,8 @@ export const size = {
   cartImage: '80px',
   quantityDisplayWidth: '32px',
   cartSummaryWidth: '320px',
+  /** Checkout: width of the form column. */
+  checkoutWidth: '640px',
 } as const
 
 export const zIndex = {

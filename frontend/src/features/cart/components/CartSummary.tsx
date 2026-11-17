@@ -7,7 +7,7 @@ export interface CartSummaryProps {
   itemCount: number
   total: number
   currency: Currency
-  /** The button stays disabled without a handler (the checkout screen does not exist yet). */
+  /** The button stays disabled without a handler. */
   onCheckout?: () => void
 }
 
