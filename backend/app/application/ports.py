@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Any, Protocol
 
 from app.application.agent.tool import ToolSpec
-from app.domain.agent import ChatMessage, ModelReply
+from app.domain.agent import AgentState, ChatMessage, ModelReply
 from app.domain.cart import CartLine, ProductStockInfo
 from app.domain.catalog import (
     CategoryGroup,
@@ -17,6 +17,7 @@ from app.domain.catalog import (
     Specification,
     Warehouse,
 )
+from app.domain.conversation import StoredMessage
 from app.domain.purchase import (
     ConfirmationPlan,
     Customer,
@@ -132,6 +133,44 @@ class OrderRepository(Protocol):
 
     def get(self, order_id: str, session_id: str) -> Order:
         """One order of the session. Raises OrderNotFound if it is unknown or another session's."""
+        ...
+
+
+class ConversationRepository(Protocol):
+    """Chat history and agent state, keyed by conversation and owned by one browser session."""
+
+    def create(self, session_id: str) -> str:
+        """Start a new conversation for the session and return its id."""
+        ...
+
+    def load_state(self, conversation_id: str, session_id: str) -> AgentState:
+        """Agent state saved by the last turn.
+
+        Raises ConversationNotFound when the id is unknown, malformed or another session's.
+        """
+        ...
+
+    def recent_messages(self, conversation_id: str, limit: int) -> list[StoredMessage]:
+        """The last ``limit`` user and assistant messages, oldest first."""
+        ...
+
+    def list_messages(self, conversation_id: str, session_id: str) -> list[StoredMessage]:
+        """Every message, oldest first. Raises ConversationNotFound like ``load_state``."""
+        ...
+
+    def append_turn(
+        self,
+        conversation_id: str,
+        user_text: str,
+        assistant_text: str,
+        blocks: list[dict],
+        tool_calls: list[dict],
+        state: AgentState,
+    ) -> None:
+        """Store the user and assistant messages and the new state in one transaction.
+
+        ``blocks`` and ``tool_calls`` belong to the assistant message; the user message has none.
+        """
         ...
 
 

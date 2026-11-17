@@ -11,7 +11,7 @@ from app.application.agent.answer import (
     FINAL_ANSWER_SCHEMA,
     TurnResult,
 )
-from app.application.agent.cart_tools import build_cart_tools
+from app.application.agent.cart_tools import AddToCartArgs, build_cart_tools
 from app.application.agent.catalog_tools import (
     CompareProductsArgs,
     SearchProductsArgs,
@@ -238,6 +238,103 @@ def test_short_follow_up_keeps_the_existing_goal():
     run(make_loop(model), "sí, dale", state)
 
     assert state.goal == "headphones for calls"
+
+
+GOAL = "Necesito auriculares para trabajar"
+
+
+def loop_with_cart(model, fakes=None):
+    """Loop whose tools also include an add_to_cart stub."""
+    fakes = fakes or Fakes()
+    added = Tool(
+        "add_to_cart",
+        "add",
+        AddToCartArgs,
+        lambda args, context: {"added": args.product_id, "quantity": args.quantity},
+    )
+    registry = ToolRegistry([*fakes.tools(), added])
+    return AgentLoop(model, ToolDispatcher(registry), registry.specs(), 6, 8)
+
+
+def test_first_message_sets_the_goal():
+    state = AgentState()
+    model = ScriptedModel(text_reply(), final())
+
+    run(make_loop(model), GOAL, state)
+
+    assert state.goal == GOAL
+
+
+def test_action_message_with_many_words_keeps_the_goal():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(
+        tool_reply("add_to_cart", product_id="MN-1", quantity=1), text_reply(), final()
+    )
+
+    run(loop_with_cart(model), "Agregá el primero al carrito", state)
+
+    assert state.goal == GOAL
+
+
+def test_compare_message_with_many_words_keeps_the_goal():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(
+        tool_reply("compare_products", product_ids=["MN-1", "MN-2"]), text_reply(), final()
+    )
+
+    run(make_loop(model), "Compará el primero con el segundo", state)
+
+    assert state.goal == GOAL
+
+
+def test_successful_search_with_many_words_replaces_the_goal():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(
+        tool_reply("search_products", query="gaming monitor"), text_reply(), recommending()
+    )
+
+    run(make_loop(model), "Ahora busco un monitor para jugar", state)
+
+    assert state.goal == "Ahora busco un monitor para jugar"
+
+
+def test_empty_search_does_not_replace_the_goal():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(
+        tool_reply("search_products", query="gaming monitor"),
+        text_reply(),
+        final(reply="No tengo eso.", not_found="gaming monitor"),
+    )
+
+    run(make_loop(model, Fakes(empty_search=True)), "Ahora busco un monitor para jugar", state)
+
+    assert state.goal == GOAL
+
+
+def test_failed_search_does_not_replace_the_goal():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(
+        tool_reply("search_products", bogus="x"),
+        text_reply(),
+        final(reply="No pude buscar."),
+    )
+
+    run(make_loop(model), "Ahora busco un monitor para jugar", state)
+
+    assert state.goal == GOAL
+
+
+def test_successful_search_with_few_words_keeps_the_goal():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(
+        tool_reply("search_products", query="wireless office mouse for work"),
+        text_reply(),
+        recommending(),
+    )
+
+    run(make_loop(model), "Mostrame mouses inalámbricos", state, [ChatMessage.user(UC1)])
+
+    assert state.goal == GOAL
 
 
 # --- stop conditions -----------------------------------------------------------------------

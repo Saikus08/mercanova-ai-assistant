@@ -11,6 +11,7 @@ from sqlalchemy.exc import StatementError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.adapters.api.session import InvalidSessionId, MissingSession
+from app.domain.agent import LLMUnavailable
 from app.domain.cart import (
     InsufficientStock,
     InvalidQuantity,
@@ -18,6 +19,7 @@ from app.domain.cart import (
     ProductInactive,
 )
 from app.domain.catalog import InvalidComparison, ProductNotFound
+from app.domain.conversation import ConversationNotFound, InvalidMessage
 from app.domain.purchase import (
     CartEmpty,
     InvalidCheckout,
@@ -129,6 +131,27 @@ def _invalid_checkout(_: Request, error: Exception) -> JSONResponse:
     )
 
 
+def _llm_unavailable(_: Request, error: Exception) -> JSONResponse:
+    return error_response(
+        503,
+        "LLM_UNAVAILABLE",
+        "El asistente no está disponible por ahora. El resto de la tienda sigue funcionando.",
+    )
+
+
+def _conversation_not_found(_: Request, error: Exception) -> JSONResponse:
+    return error_response(404, "CONVERSATION_NOT_FOUND", "La conversación no existe.")
+
+
+def _invalid_message(_: Request, error: Exception) -> JSONResponse:
+    return error_response(
+        400,
+        "VALIDATION_ERROR",
+        "Los datos enviados no son válidos.",
+        {"errors": [{"field": "message", "message": str(error)}]},
+    )
+
+
 def _missing_session(_: Request, error: Exception) -> JSONResponse:
     return error_response(
         400, "MISSING_SESSION", "Falta el identificador de sesión (encabezado X-Session-Id)."
@@ -188,6 +211,9 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(OrderNotPending, _order_not_pending)
     app.add_exception_handler(PriceChanged, _price_changed)
     app.add_exception_handler(InvalidCheckout, _invalid_checkout)
+    app.add_exception_handler(LLMUnavailable, _llm_unavailable)
+    app.add_exception_handler(ConversationNotFound, _conversation_not_found)
+    app.add_exception_handler(InvalidMessage, _invalid_message)
     app.add_exception_handler(MissingSession, _missing_session)
     app.add_exception_handler(InvalidSessionId, _invalid_session_id)
     app.add_exception_handler(RequestValidationError, _validation_error)

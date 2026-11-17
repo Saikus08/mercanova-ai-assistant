@@ -103,6 +103,35 @@ class AgentState:
         if cleaned:
             self.goal = cleaned[:GOAL_MAX_CHARS]
 
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-serializable form, to keep the state between turns of a conversation."""
+        return {
+            "goal": self.goal,
+            "shown_products": [
+                {"product_id": p.product_id, "name": p.name} for p in self.shown_products
+            ],
+            "tools_used": [
+                {"name": use.name, "ok": use.ok, "step": use.step} for use in self.tools_used
+            ],
+            "step": self.step,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AgentState":
+        """Rebuild a state from `to_dict`; missing keys fall back to the defaults."""
+        return cls(
+            goal=data.get("goal", ""),
+            shown_products=[
+                ShownProduct(p.get("product_id", ""), p.get("name", ""))
+                for p in data.get("shown_products", [])
+            ],
+            tools_used=[
+                ToolUse(use.get("name", ""), bool(use.get("ok", False)), use.get("step", 0))
+                for use in data.get("tools_used", [])
+            ],
+            step=data.get("step", 0),
+        )
+
     def describe(self) -> str:
         """English text for the model prompt. The numbering lets 'the first one' be resolved."""
         goal = self.goal or "not stated yet"

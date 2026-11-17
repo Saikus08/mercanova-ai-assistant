@@ -1,6 +1,6 @@
 # Flujo de un turno del asistente
 
-Estos diagramas muestran lo que está implementado en el ciclo del agente (decisión 0009). El endpoint de chat que lo invoca, y que guarda el estado entre mensajes, es otra tarea: hoy el ciclo se prueba directamente.
+Estos diagramas muestran lo que está implementado en el ciclo del agente (decisión 0009). El endpoint de chat invoca este ciclo, guarda el estado entre mensajes y arma los bloques de la respuesta (ver `chat-flow.md`).
 
 ## 1. Un turno, de punta a punta
 
