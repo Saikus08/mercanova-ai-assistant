@@ -20,7 +20,10 @@ export function PurchaseComplete({ order, warehouseName, catalogPath = paths.cat
         Número de orden: <strong>{order.order_id}</strong>
       </p>
       <OrderSummary order={order} warehouseName={warehouseName} />
-      <Link to={catalogPath}>Seguir comprando</Link>
+      <div className={styles.links}>
+        <Link to={paths.orders}>Ver mis compras</Link>
+        <Link to={catalogPath}>Seguir comprando</Link>
+      </div>
     </Card>
   )
 }

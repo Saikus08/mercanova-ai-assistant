@@ -18,6 +18,9 @@ export function App() {
               Catálogo
             </NavLink>
             <CartNavLink />
+            <NavLink to={paths.orders} className={navLinkClass}>
+              Mis compras
+            </NavLink>
             <NavLink to={paths.ui} className={navLinkClass}>
               Componentes
             </NavLink>
