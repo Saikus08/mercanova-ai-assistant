@@ -4,7 +4,7 @@ Estos diagramas muestran lo que está implementado en el endpoint de chat (decis
 
 ## 1. `POST /api/chat/stream`, de punta a punta
 
-El turno corre en un hilo aparte y el hilo principal va enviando los eventos al navegador a medida que llegan por una cola.
+El turno corre en un hilo aparte y el hilo principal va enviando los eventos al navegador a medida que llegan por una cola. El hilo abre y cierra sus propios recursos (sesión de base de datos y clientes del modelo), y siempre deja un evento final en la cola; si el hilo muriera sin dejarlo, el generador lo detecta y envía un evento `error` (INTERNAL_ERROR).
 
 ```mermaid
 sequenceDiagram
@@ -17,6 +17,7 @@ sequenceDiagram
 
     U->>A: POST message, conversation_id, input_mode
     A->>W: inicia el hilo y espera en la cola
+    W->>W: abre su sesión de base de datos y sus clientes del modelo
     W->>S: handle(mensaje, conversation_id)
     alt conversation_id nulo
         S->>DB: crea la conversación
