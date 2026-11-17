@@ -2,7 +2,8 @@
 
 The agent loop and its tools are built per request because their repositories are bound to the
 request's database session. The model and the embedder are separate dependencies so tests can
-replace them.
+replace them. The stream route runs the turn in a worker thread, so it does not use the
+request-scoped resources: the worker opens its own through ``get_service_scope``.
 """
 
 import json
@@ -11,7 +12,8 @@ import queue
 import re
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
@@ -26,7 +28,7 @@ from app.adapters.persistence.cart_repository import SqlAlchemyCartRepository
 from app.adapters.persistence.catalog_repository import SqlAlchemyCatalogRepository
 from app.adapters.persistence.conversation_repository import SqlAlchemyConversationRepository
 from app.adapters.persistence.semantic_search_repository import SqlAlchemySemanticSearch
-from app.adapters.persistence.session import get_session
+from app.adapters.persistence.session import get_session, get_session_factory
 from app.application.agent.cart_tools import build_cart_tools
 from app.application.agent.catalog_tools import build_catalog_tools
 from app.application.agent.dispatcher import ToolDispatcher
@@ -44,6 +46,8 @@ router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 # Pause between token events so the UI shows the answer being written. Tests set it to 0.
 TOKEN_DELAY_SECONDS = 0.02
+# How long the stream waits for the next worker event before checking the worker is alive.
+EVENT_POLL_SECONDS = 1.0
 
 _CHUNK = re.compile(r"\s*\S+\s*")
 
@@ -135,11 +139,10 @@ def get_embedding_model() -> EmbeddingModel:
     )
 
 
-def get_chat_service(
-    session: Session = Depends(get_session),
-    model: ChatModel = Depends(get_chat_model),
-    embedder: EmbeddingModel = Depends(get_embedding_model),
+def build_chat_service(
+    session: Session, model: ChatModel, embedder: EmbeddingModel
 ) -> ChatService:
+    """Wire the agent, its tools and the repositories on one database session."""
     settings = get_settings()
     catalog = SqlAlchemyCatalogRepository(session)
     tools = build_catalog_tools(
@@ -159,6 +162,51 @@ def get_chat_service(
         catalog,
         settings.agent_history_messages,
     )
+
+
+def get_chat_service(
+    session: Session = Depends(get_session),
+    model: ChatModel = Depends(get_chat_model),
+    embedder: EmbeddingModel = Depends(get_embedding_model),
+) -> ChatService:
+    return build_chat_service(session, model, embedder)
+
+
+ServiceScope = Callable[[], AbstractContextManager[ChatService]]
+
+
+def get_service_scope() -> ServiceScope:
+    """A scope that gives a chat service with its own session, model and embedder.
+
+    The caller owns the resources: they are closed when the scope exits. Used by the stream
+    worker thread, which outlives the request-scoped dependencies.
+    """
+
+    @contextmanager
+    def scope() -> Iterator[ChatService]:
+        settings = get_settings()
+        session = get_session_factory()()
+        model = OllamaChat(
+            settings.ollama_base_url,
+            settings.llm_model,
+            settings.llm_timeout_seconds,
+            temperature=settings.llm_temperature,
+            num_ctx=settings.llm_num_ctx,
+            think=settings.llm_think,
+        )
+        embedder = OllamaEmbeddings(
+            settings.ollama_base_url, settings.embedding_model, settings.embedding_timeout_seconds
+        )
+        try:
+            yield build_chat_service(session, model, embedder)
+        finally:
+            for resource in (embedder, model, session):
+                try:
+                    resource.close()
+                except Exception:
+                    logger.exception("Closing a chat scope resource failed")
+
+    return scope
 
 
 def get_conversation_repository(
@@ -186,34 +234,50 @@ def chat(
 
 
 def _stream_events(
-    service: ChatService, session_id: str, body: ChatRequest
+    scope: ServiceScope, session_id: str, body: ChatRequest
 ) -> Iterator[str]:
-    """Run the turn in a worker thread and yield its events as they arrive."""
+    """Run the turn in a worker thread and yield its events as they arrive.
+
+    The worker owns its resources (the scope) and always leaves exactly one terminal item,
+    ``reply`` or ``failure``, so the consumer never waits for a worker that is gone.
+    """
     events: queue.Queue[tuple[str, Any]] = queue.Queue()
 
     def work() -> None:
+        outcome: tuple[str, Any] = ("failure", RuntimeError("worker ended without a result"))
         try:
-            reply = service.handle(
-                session_id,
-                body.message,
-                body.conversation_id,
-                on_event=lambda e: (
-                    events.put(("tool_call", {"name": e["name"], "args": e["arguments"]}))
-                    if e.get("type") == "tool_call"
-                    else None
-                ),
-                on_conversation=lambda cid: events.put(("meta", {"conversation_id": cid})),
-            )
-            events.put(("reply", reply))
+            with scope() as service:
+                reply = service.handle(
+                    session_id,
+                    body.message,
+                    body.conversation_id,
+                    on_event=lambda e: (
+                        events.put(("tool_call", {"name": e["name"], "args": e["arguments"]}))
+                        if e.get("type") == "tool_call"
+                        else None
+                    ),
+                    on_conversation=lambda cid: events.put(("meta", {"conversation_id": cid})),
+                )
+            outcome = ("reply", reply)
         except Exception as error:
             if error_event(error)[1]["error"]["code"] == "INTERNAL_ERROR":
                 logger.exception("Chat stream failed")
-            events.put(("failure", error))
+            outcome = ("failure", error)
+        finally:
+            events.put(outcome)
 
-    threading.Thread(target=work, daemon=True).start()
+    worker = threading.Thread(target=work, daemon=True)
+    worker.start()
 
     while True:
-        name, payload = events.get()
+        try:
+            name, payload = events.get(timeout=EVENT_POLL_SECONDS)
+        except queue.Empty:
+            if worker.is_alive() or not events.empty():
+                continue
+            logger.error("Chat stream worker ended without a terminal event")
+            yield format_sse(*error_event(RuntimeError("worker ended")))
+            return
         if name in ("meta", "tool_call"):
             yield format_sse(name, payload)
         elif name == "failure":
@@ -237,10 +301,10 @@ def _reply_events(reply: ChatReply) -> Iterator[str]:
 def chat_stream(
     body: ChatRequest,
     session_id: str = Depends(get_session_id),
-    service: ChatService = Depends(get_chat_service),
+    scope: ServiceScope = Depends(get_service_scope),
 ) -> StreamingResponse:
     return StreamingResponse(
-        _stream_events(service, session_id, body),
+        _stream_events(scope, session_id, body),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

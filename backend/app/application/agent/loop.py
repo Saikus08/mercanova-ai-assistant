@@ -156,12 +156,16 @@ class AgentLoop:
         on_event: Callable[[dict[str, Any]], None],
     ) -> TurnResult:
         state = turn.state
-        if not state.goal or len(user_message.split()) >= GOAL_MIN_WORDS:
+        if not state.goal:
             state.set_goal(user_message)
         state.step = 0
         messages = build_context(state, history, user_message, self._history_messages)
 
         self._tool_phase(turn, messages, context, on_event)
+        # Only a turn that searched a new need (and found products) changes the goal; adding to
+        # the cart, comparing or asking a price never does.
+        if turn.last_search_cards and len(user_message.split()) >= GOAL_MIN_WORDS:
+            state.set_goal(user_message)
         messages.append(ChatMessage.user(FINAL_INSTRUCTION))
         answer = self._grounded_answer(turn, messages)
         return self._result(turn, answer)

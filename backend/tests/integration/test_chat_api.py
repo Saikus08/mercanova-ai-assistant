@@ -1,8 +1,11 @@
 """Chat endpoints against PostgreSQL with a scripted model and a fake embedder."""
 
 import json
+import threading
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 
 import pytest
 from fastapi.testclient import TestClient
@@ -33,16 +36,23 @@ class ScriptedModel:
         self.delay = delay
         self.closed_at_call: list[bool] = []
         self.closed = False
+        self.log: list[str] | None = None  # shared with the scope to check the order of events
 
     def chat(self, messages, tools, response_schema=None):
         self.closed_at_call.append(self.closed)
         self.calls.append(list(messages))
+        if self.log is not None:
+            self.log.append("model")
         if self.delay:
             time.sleep(self.delay)
         reply = self.replies.pop(0)
-        if isinstance(reply, Exception):
+        if isinstance(reply, BaseException):
             raise reply
         return reply
+
+
+class Boom(BaseException):
+    """Not an ``Exception``: what a worker thread gets on KeyboardInterrupt or SystemExit."""
 
 
 class FakeEmbedder:
@@ -157,6 +167,60 @@ def use_model(client: TestClient):
         return model
 
     return install
+
+
+@dataclass
+class ScopeProbe:
+    """What the stream worker did with the service scope installed by ``use_scope``."""
+
+    model: ScriptedModel
+    log: list[str] = field(default_factory=list)
+    threads: list[threading.Thread] = field(default_factory=list)
+
+
+@pytest.fixture
+def use_scope(client: TestClient, db_session: Session):
+    """Install a service scope for ``/api/chat/stream`` built on the test session.
+
+    The worker thread must get its service from the scope, never from the request dependencies,
+    so ``get_chat_service`` fails the request if the stream route touches it.
+    """
+
+    def install(model: ScriptedModel) -> ScopeProbe:
+        probe = ScopeProbe(model)
+        model.log = probe.log
+
+        @contextmanager
+        def scope():
+            probe.log.append("enter")
+            probe.threads.append(threading.current_thread())
+            try:
+                yield chat_module.build_chat_service(db_session, model, FakeEmbedder())
+            finally:
+                probe.log.append("exit")
+
+        def forbidden():
+            raise AssertionError("the stream route must not use the request-scoped service")
+
+        app.dependency_overrides[chat_module.get_service_scope] = lambda: scope
+        app.dependency_overrides[chat_module.get_chat_service] = forbidden
+        return probe
+
+    return install
+
+
+def post_with_deadline(client, seconds: float = 10.0, **kwargs):
+    """``post`` that fails the test instead of hanging when the stream never ends."""
+    outcome = {}
+
+    def run() -> None:
+        outcome["response"] = post(client, **kwargs)
+
+    caller = threading.Thread(target=run, daemon=True)
+    caller.start()
+    caller.join(seconds)
+    assert not caller.is_alive(), "the stream did not end"
+    return outcome["response"]
 
 
 def post(client, message="Hola", conversation_id=None, headers=HEADERS, path="/api/chat", **extra):
@@ -300,9 +364,9 @@ def test_model_unavailable_is_503_and_nothing_is_persisted(client, use_model, db
     assert message_count(db_session) == 0
 
 
-def test_stream_sends_events_in_order(client, use_model):
+def test_stream_sends_events_in_order(client, use_scope):
     reply_text = "Te recomiendo el Vision 24 porque es ideal para jugar."
-    use_model(ScriptedModel(*search_turn(reply_text)))
+    use_scope(ScriptedModel(*search_turn(reply_text)))
 
     response = post(
         client, "Quiero un monitor gamer de hasta 150 dólares", path="/api/chat/stream"
@@ -332,8 +396,8 @@ def test_stream_sends_events_in_order(client, use_model):
     assert len(stored.json()["messages"]) == 2
 
 
-def test_stream_with_model_unavailable_ends_with_an_error_event(client, use_model):
-    use_model(ScriptedModel(LLMUnavailable("down")))
+def test_stream_with_model_unavailable_ends_with_an_error_event(client, use_scope):
+    use_scope(ScriptedModel(LLMUnavailable("down")))
 
     response = post(client, path="/api/chat/stream")
 
@@ -343,15 +407,15 @@ def test_stream_with_model_unavailable_ends_with_an_error_event(client, use_mode
     assert events[-1][1]["error"]["code"] == "LLM_UNAVAILABLE"
 
 
-def test_stream_with_unknown_conversation_ends_with_an_error_event(client, use_model):
-    use_model(ScriptedModel())
+def test_stream_with_unknown_conversation_ends_with_an_error_event(client, use_scope):
+    use_scope(ScriptedModel())
     response = post(client, conversation_id="not-a-uuid", path="/api/chat/stream")
     assert [name for name, _ in parse_sse(response.text)] == ["error"]
     assert parse_sse(response.text)[0][1]["error"]["code"] == "CONVERSATION_NOT_FOUND"
 
 
-def test_stream_internal_failure_hides_the_exception_text(client, use_model):
-    use_model(ScriptedModel(RuntimeError("secret detail")))
+def test_stream_internal_failure_hides_the_exception_text(client, use_scope):
+    use_scope(ScriptedModel(RuntimeError("secret detail")))
 
     response = post(client, path="/api/chat/stream")
 
@@ -361,11 +425,39 @@ def test_stream_internal_failure_hides_the_exception_text(client, use_model):
     assert events[-1][1]["error"]["code"] == "INTERNAL_ERROR"
 
 
-def test_model_is_still_open_while_the_stream_worker_uses_it(client, use_model):
-    model = use_model(ScriptedModel(*plain_turn("Hola"), delay=0.1))
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnhandledThreadExceptionWarning")
+def test_stream_ends_with_an_error_when_the_worker_dies_with_a_base_exception(
+    client, use_scope
+):
+    probe = use_scope(ScriptedModel(Boom()))
+
+    response = post_with_deadline(client, path="/api/chat/stream")
+
+    events = parse_sse(response.text)
+    assert events[-1][0] == "error"
+    assert events[-1][1]["error"]["code"] == "INTERNAL_ERROR"
+    assert probe.log[-1] == "exit"
+
+
+def test_stream_with_a_blank_message_ends_with_a_validation_error_and_persists_nothing(
+    client, use_scope, db_session
+):
+    use_scope(ScriptedModel())
+
+    response = post(client, "   ", path="/api/chat/stream")
+
+    events = parse_sse(response.text)
+    assert events[-1][0] == "error"
+    assert events[-1][1]["error"]["code"] == "VALIDATION_ERROR"
+    assert message_count(db_session) == 0
+
+
+def test_stream_worker_owns_the_scope_and_releases_it_after_the_turn(client, use_scope):
+    probe = use_scope(ScriptedModel(*plain_turn("Hola")))
 
     response = post(client, path="/api/chat/stream")
 
     assert parse_sse(response.text)[-1][0] == "done"
-    assert model.closed_at_call == [False, False]
-    assert model.closed is True
+    assert probe.log == ["enter", "model", "model", "exit"]
+    [worker] = probe.threads
+    assert worker is not threading.main_thread()

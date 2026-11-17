@@ -1,10 +1,13 @@
 """Pure helpers of the chat stream: SSE framing, word chunks and error events."""
 
 import json
+from contextlib import contextmanager
+from types import SimpleNamespace
 
 import pytest
 
-from app.adapters.api.chat import error_event, format_sse, split_words
+from app.adapters.api import chat as chat_module
+from app.adapters.api.chat import ChatRequest, error_event, format_sse, split_words
 from app.domain.agent import LLMUnavailable
 from app.domain.conversation import ConversationNotFound, InvalidMessage
 
@@ -64,3 +67,29 @@ def test_error_event_maps_exceptions_to_codes(error, code):
 def test_internal_error_event_never_includes_the_exception_text():
     _, data = error_event(RuntimeError("secret detail"))
     assert "secret detail" not in json.dumps(data)
+
+
+def test_consumer_ends_with_an_error_when_the_worker_died_without_a_result(monkeypatch):
+    class DeadThread:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def start(self):
+            pass
+
+        def is_alive(self):
+            return False
+
+    @contextmanager
+    def scope():
+        raise AssertionError("the worker never runs in this test")
+        yield
+
+    monkeypatch.setattr(chat_module, "threading", SimpleNamespace(Thread=DeadThread))
+    monkeypatch.setattr(chat_module, "EVENT_POLL_SECONDS", 0.01)
+
+    frames = list(chat_module._stream_events(lambda: scope(), "s1", ChatRequest(message="Hola")))
+
+    assert len(frames) == 1
+    assert frames[0].startswith("event: error\n")
+    assert '"INTERNAL_ERROR"' in frames[0]
