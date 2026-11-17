@@ -244,6 +244,17 @@ export interface Order {
   currency: Currency
 }
 
+/** One entry of GET /api/warehouses. */
+export interface Warehouse {
+  warehouse_id: string
+  warehouse_name: string
+  city: string
+  department: string
+  country: string
+  pickup_enabled: boolean
+  shipping_enabled: boolean
+}
+
 /** Body of POST /api/checkout (step 1: creates a pending order). */
 export interface CheckoutRequest {
   customer: Customer
