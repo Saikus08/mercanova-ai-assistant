@@ -6,6 +6,7 @@ export function productPath(productId: string): string {
 
 export const paths = {
   catalog: '/',
+  cart: '/cart',
   ui: '/ui',
   product: productPath,
   productPattern: PRODUCT_ROUTE_PATTERN,
