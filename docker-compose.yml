@@ -40,9 +40,21 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
-      DATASET_PATH: ${DATASET_PATH:-/data/MercaNova_dataset_obligatorio_2.xlsx}
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://ollama:11434}
+      - DATASET_PATH=${DATASET_PATH:-/data/MercaNova_dataset_obligatorio_2.xlsx}
+      # Passed through only when set (shell or .env); the defaults live in backend/app/config.py.
+      - LLM_MODEL
+      - LLM_TIMEOUT_SECONDS
+      - LLM_TEMPERATURE
+      - LLM_NUM_CTX
+      - LLM_THINK
+      - AGENT_MAX_STEPS
+      - AGENT_HISTORY_MESSAGES
+      - EMBEDDING_MODEL
+      - EMBEDDING_TIMEOUT_SECONDS
+      - EMBEDDING_BATCH_SIZE
+      - SEARCH_MIN_SIMILARITY
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
