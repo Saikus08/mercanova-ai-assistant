@@ -23,7 +23,10 @@ Cuando algo sale mal, la respuesta siempre tiene la misma forma:
 |---|---|---|
 | 400 | `VALIDATION_ERROR` | Faltan datos o tienen un formato incorrecto |
 | 400 | `MISSING_SESSION` | El pedido no trae el encabezado `X-Session-Id` |
-| 404 | `PRODUCT_NOT_FOUND` | El producto no existe |
+| 404 | `PRODUCT_NOT_FOUND` | El producto no existe, o se intenta cambiar la cantidad de un producto que no está en el carrito |
+| 404 | `NOT_FOUND` | La ruta no existe |
+| 404 | `CONVERSATION_NOT_FOUND` | La conversación no existe o es de otra sesión |
+| 405 | `METHOD_NOT_ALLOWED` | La ruta existe pero no admite ese método HTTP |
 | 404 | `ORDER_NOT_FOUND` | La orden no existe o es de otra sesión |
 | 409 | `INSUFFICIENT_STOCK` | Se pide más cantidad de la disponible, al agregar al carrito o al confirmar |
 | 409 | `PRODUCT_INACTIVE` | El producto existe pero ya no se vende |
@@ -34,6 +37,7 @@ Cuando algo sale mal, la respuesta siempre tiene la misma forma:
 | 503 | `LLM_UNAVAILABLE` | El modelo de lenguaje no responde |
 | 503 | `STT_UNAVAILABLE` | El servicio de voz a texto no responde |
 | 500 | `INTERNAL_ERROR` | Error inesperado. Nunca muestra detalles técnicos al usuario |
+| otro | `HTTP_ERROR` | Cualquier otro error HTTP del framework que no tiene un código propio (el código HTTP es el original) |
 
 ## 2. Estructuras de datos que se repiten
 
@@ -150,7 +154,7 @@ Los nombres son los mismos que aparecen en `category` y `subcategory` de cada pr
 |---|---|---|---|
 | GET | `/api/cart` | – | El carrito |
 | POST | `/api/cart/items` | `{ "product_id", "quantity" }`. Si el producto ya estaba, suma la cantidad. | El carrito actualizado. Error `INSUFFICIENT_STOCK` o `PRODUCT_INACTIVE` |
-| PATCH | `/api/cart/items/{product_id}` | `{ "quantity" }` (mínimo 1) | El carrito actualizado. Error `INSUFFICIENT_STOCK` |
+| PATCH | `/api/cart/items/{product_id}` | `{ "quantity" }` (mínimo 1) | El carrito actualizado. Errores `INSUFFICIENT_STOCK`, o `PRODUCT_NOT_FOUND` ("El producto no está en el carrito") si ese producto no estaba en el carrito |
 | DELETE | `/api/cart/items/{product_id}` | – | El carrito sin ese producto |
 | DELETE | `/api/cart` | – | El carrito vacío |
 
@@ -162,7 +166,7 @@ La compra se hace en **dos pasos**. Así la letra se cumple de forma verificable
 
 | Método | Ruta | Envía | Devuelve |
 |---|---|---|---|
-| POST | `/api/checkout` | `{ "customer": { "name", "email", "address" }, "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" } }`, o con `"method": "shipping"` para enviar a la dirección del cliente. Los tres datos del cliente son obligatorios. | **Paso 1.** Una orden en estado `pending_confirmation`, con los precios del momento. Verifica que haya stock, pero **no lo descuenta**. Errores: `CART_EMPTY`, `INSUFFICIENT_STOCK` |
+| POST | `/api/checkout` | `{ "customer": { "name", "email", "address" }, "delivery": { "method": "pickup", "warehouse_id": "WH-MVD-CEN" } }`, o con `"method": "shipping"` para enviar a la dirección del cliente. Los tres datos del cliente son obligatorios. | **Paso 1.** Responde `201` con una orden en estado `pending_confirmation`, con los precios del momento. Verifica que haya stock, pero **no lo descuenta**. Errores: `CART_EMPTY`, `INSUFFICIENT_STOCK` |
 | POST | `/api/orders/{order_id}/confirm` | – | **Paso 2.** La orden en estado `confirmed`. Errores: `INSUFFICIENT_STOCK`, `PRICE_CHANGED`, `ORDER_NOT_PENDING` |
 | POST | `/api/orders/{order_id}/cancel` | – | La orden en estado `cancelled` |
 | GET | `/api/orders` | – | Las órdenes de la sesión, de la más nueva a la más vieja |
@@ -248,8 +252,10 @@ El frontend tiene un componente visual para cada tipo de bloque.
 | `comparison` | Igual que la respuesta de `/api/products/compare` | Tabla comparativa (RF-06) |
 | `clarification` | `{ "question": "¿Para qué lo vas a usar?", "options": ["Trabajo", "Gaming", "Diseño"] }` | La pregunta con botones de respuesta rápida (RF-05) |
 | `cart_updated` | `{ "cart": <carrito> }` | Aviso breve y actualización del ícono del carrito |
-| `checkout_draft` | `{ "order": <orden pendiente> }` | Abre la ventana de confirmación de compra (RF-12) |
+| `checkout_draft` | `{ "cart": <carrito> }`. Solo se envía cuando el carrito está listo para pagar (ningún producto pide más que el stock actual). | Abre la ventana de confirmación de compra (RF-12) |
 | `not_found` | `{ "query": "PlayStation 9" }` | Aviso de que eso no está en el catálogo (RF-18) |
+
+**`checkout_draft` no trae una orden.** El asistente no crea la orden ni recibe nombre, email o dirección (decisión 0008): esos datos pasan solo por la ventana de la interfaz. La ventana muestra el resumen del carrito, pide los datos y llama a `POST /api/checkout` (paso 1) y después a `POST /api/orders/{order_id}/confirm` (paso 2), cuando el usuario hace clic en "Confirmar compra".
 
 `tools_used` lista las herramientas que usó el asistente para responder. El frontend las muestra en un panel desplegable, "Cómo lo resolví". Sirve para la demostración y para explicar el funcionamiento en la defensa.
 
