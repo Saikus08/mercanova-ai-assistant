@@ -6,6 +6,7 @@ Cliente tipado de la API del backend.
 - `http.ts`: hace los pedidos a `/api`, agrega el encabezado `X-Session-Id` y convierte las respuestas de error en un `ApiRequestError` con el mensaje en español del contrato. Si no hay conexión, usa un mensaje propio.
 - `session.ts`: genera el identificador de sesión la primera vez y lo guarda en el navegador.
 - `catalog.ts`: endpoints del catálogo (`/api/products`, `/api/products/{id}`, `/api/categories`).
+- `cart.ts`: endpoints del carrito (`/api/cart`, `/api/cart/items`). Usa `apiGet`, `apiPost`, `apiPatch` y `apiDelete` de `http.ts`. No tiene datos simulados: los tests usan implementaciones en memoria de `CartApi`.
 - `mocks/`: datos simulados que respetan los tipos, con los mismos filtros que el contrato.
 
 ## Datos simulados o backend real

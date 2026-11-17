@@ -47,12 +47,19 @@ function isApiError(body: unknown): body is ApiError {
   )
 }
 
-/** GET a JSON resource under `/api`, with the session header and contract error handling. */
-export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+
+/** Sends a request under `/api` with the session header and maps contract errors to `ApiRequestError`. */
+async function request<T>(method: HttpMethod, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json', 'X-Session-Id': getSessionId() }
+  if (body !== undefined) headers['Content-Type'] = 'application/json'
+
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
-      headers: { Accept: 'application/json', 'X-Session-Id': getSessionId() },
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
       signal,
     })
   } catch (cause) {
@@ -60,15 +67,27 @@ export async function apiGet<T>(path: string, signal?: AbortSignal): Promise<T> 
     throw new ApiRequestError('NETWORK_ERROR', NETWORK_ERROR_MESSAGE, null)
   }
 
-  const body: unknown = await response.json().catch(() => null)
+  const payload: unknown = await response.json().catch(() => null)
 
   if (!response.ok) {
-    if (isApiError(body)) {
-      const { code, message, details } = body.error
+    if (isApiError(payload)) {
+      const { code, message, details } = payload.error
       throw new ApiRequestError(code, message, response.status, details)
     }
     throw new ApiRequestError('INTERNAL_ERROR', UNEXPECTED_ERROR_MESSAGE, response.status)
   }
 
-  return body as T
+  return payload as T
 }
+
+export const apiGet = <T>(path: string, signal?: AbortSignal): Promise<T> =>
+  request<T>('GET', path, undefined, signal)
+
+export const apiPost = <T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> =>
+  request<T>('POST', path, body, signal)
+
+export const apiPatch = <T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> =>
+  request<T>('PATCH', path, body, signal)
+
+export const apiDelete = <T>(path: string, signal?: AbortSignal): Promise<T> =>
+  request<T>('DELETE', path, undefined, signal)
