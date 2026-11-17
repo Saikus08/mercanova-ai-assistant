@@ -28,6 +28,8 @@ function setup({ items = ITEMS, orders = () => ({}), warehousesApi }: SetupOptio
     checkout: vi.fn(base.checkout),
     confirm: vi.fn(base.confirm),
     cancel: vi.fn(base.cancel),
+    list: vi.fn(base.list),
+    get: vi.fn(base.get),
     ...orders(base),
   }
   renderWithShop(<CheckoutFlow />, { cartApi, ordersApi, warehousesApi, path: '/checkout', route: '/checkout' })

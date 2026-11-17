@@ -7,12 +7,13 @@ import type { Order } from '../api/types'
  * In-memory OrdersApi that builds orders from the given cart API, like the backend does:
  * checkout does not touch the cart, confirm empties it.
  */
-export function createFakeOrdersApi(cartApi: CartApi): OrdersApi {
-  const orders = new Map<string, Order>()
+export function createFakeOrdersApi(cartApi: CartApi, initialOrders: Order[] = []): OrdersApi {
+  // Newest first, like the backend. `initialOrders` must already be in that order.
+  let orders: Order[] = [...initialOrders]
   let counter = 0
 
   const find = (orderId: string): Order => {
-    const order = orders.get(orderId)
+    const order = orders.find((candidate) => candidate.order_id === orderId)
     if (!order) throw new ApiRequestError('ORDER_NOT_FOUND', 'No encontramos esa orden.', 404)
     return order
   }
@@ -23,7 +24,7 @@ export function createFakeOrdersApi(cartApi: CartApi): OrdersApi {
       throw new ApiRequestError('ORDER_NOT_PENDING', 'La orden ya no está pendiente.', 409)
     }
     const next: Order = { ...order, status, confirmed_at: status === 'confirmed' ? '2026-11-12T22:05:00Z' : null }
-    orders.set(orderId, next)
+    orders = orders.map((candidate) => (candidate.order_id === orderId ? next : candidate))
     return next
   }
 
@@ -49,9 +50,11 @@ export function createFakeOrdersApi(cartApi: CartApi): OrdersApi {
         total: cart.total,
         currency: cart.currency,
       }
-      orders.set(order.order_id, order)
+      orders = [order, ...orders]
       return order
     },
+    list: async () => orders,
+    get: async (orderId) => find(orderId),
     confirm: async (orderId) => {
       const confirmed = move(orderId, 'confirmed')
       await cartApi.clear()

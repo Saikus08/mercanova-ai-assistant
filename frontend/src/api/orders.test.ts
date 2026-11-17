@@ -61,6 +61,38 @@ describe('httpOrdersApi', () => {
     expect(init.method).toBe('POST')
   })
 
+  it('lists the orders with GET /orders', async () => {
+    const fetchMock = mockFetch({ ok: true, status: 200, body: [order] })
+    const controller = new AbortController()
+
+    await expect(httpOrdersApi.list(controller.signal)).resolves.toEqual([order])
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/orders')
+    expect(init.method).toBe('GET')
+    expect(init.signal).toBe(controller.signal)
+  })
+
+  it('gets one order with GET /orders/{id} and encodes the id', async () => {
+    const fetchMock = mockFetch()
+
+    await expect(httpOrdersApi.get('ORD/1 A')).resolves.toEqual(order)
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/orders/ORD%2F1%20A')
+    expect(init.method).toBe('GET')
+  })
+
+  it('maps ORDER_NOT_FOUND when getting an unknown order', async () => {
+    mockFetch({
+      ok: false,
+      status: 404,
+      body: { error: { code: 'ORDER_NOT_FOUND', message: 'La orden no existe.' } },
+    })
+
+    await expect(httpOrdersApi.get('ORD-X')).rejects.toMatchObject({ code: 'ORDER_NOT_FOUND', status: 404 })
+  })
+
   it('maps contract errors to ApiRequestError with their details', async () => {
     mockFetch({
       ok: false,
