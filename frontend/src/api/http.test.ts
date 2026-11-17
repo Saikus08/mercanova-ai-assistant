@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiGet, ApiRequestError, buildQuery } from './http'
+import { apiDelete, apiGet, apiPatch, apiPost, ApiRequestError, buildQuery } from './http'
 
 function mockFetch(response: Partial<Response> | Error) {
   const fetchMock =
@@ -55,6 +55,82 @@ describe('apiGet', () => {
     mockFetch(new TypeError('Failed to fetch'))
 
     await expect(apiGet('/products')).rejects.toMatchObject({ code: 'NETWORK_ERROR', status: null })
+  })
+})
+
+describe.each([
+  ['apiPost', 'POST', apiPost],
+  ['apiPatch', 'PATCH', apiPatch],
+] as const)('%s', (_name, method, call) => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the method, the JSON body and the session header', async () => {
+    const fetchMock = mockFetch(jsonResponse(200, { ok: true }))
+
+    await expect(call('/cart/items', { quantity: 2 })).resolves.toEqual({ ok: true })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/cart/items')
+    expect(init.method).toBe(method)
+    expect(init.body).toBe(JSON.stringify({ quantity: 2 }))
+    expect(init.headers['Content-Type']).toBe('application/json')
+    expect(init.headers['X-Session-Id']).toEqual(expect.any(String))
+  })
+
+  it('turns a contract error into ApiRequestError with the Spanish message', async () => {
+    mockFetch(
+      jsonResponse(409, {
+        error: { code: 'INSUFFICIENT_STOCK', message: 'Solo hay 7 unidades disponibles.', details: { available_qty: 7 } },
+      }),
+    )
+
+    const error = await call('/cart/items', { quantity: 9 }).catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ApiRequestError)
+    expect(error).toMatchObject({
+      code: 'INSUFFICIENT_STOCK',
+      status: 409,
+      message: 'Solo hay 7 unidades disponibles.',
+      details: { available_qty: 7 },
+    })
+  })
+
+  it('reports a readable message when the backend cannot be reached', async () => {
+    mockFetch(new TypeError('Failed to fetch'))
+
+    await expect(call('/cart/items', {})).rejects.toMatchObject({ code: 'NETWORK_ERROR', status: null })
+  })
+})
+
+describe('apiDelete', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends DELETE with the session header and no body', async () => {
+    const fetchMock = mockFetch(jsonResponse(200, { items: [] }))
+
+    await expect(apiDelete('/cart')).resolves.toEqual({ items: [] })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/cart')
+    expect(init.method).toBe('DELETE')
+    expect(init.body).toBeUndefined()
+    expect(init.headers['X-Session-Id']).toEqual(expect.any(String))
+  })
+
+  it('turns a contract error into ApiRequestError', async () => {
+    mockFetch(jsonResponse(404, { error: { code: 'NOT_FOUND', message: 'No existe.' } }))
+
+    await expect(apiDelete('/cart/items/X')).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404, message: 'No existe.' })
+  })
+
+  it('falls back to an unexpected-error message for non-contract bodies', async () => {
+    mockFetch(jsonResponse(500, null))
+
+    await expect(apiDelete('/cart')).rejects.toMatchObject({ code: 'INTERNAL_ERROR' })
   })
 })
 

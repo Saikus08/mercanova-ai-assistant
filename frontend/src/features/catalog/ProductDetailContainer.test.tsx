@@ -5,6 +5,7 @@ import type { CatalogApi } from '../../api/catalog'
 import { ApiRequestError } from '../../api/http'
 import { createMockCatalogApi } from '../../api/mocks/mockCatalogApi'
 import { ProductDetailPage } from '../../pages/ProductDetailPage'
+import { createFakeCartApi } from '../../test/fakeCartApi'
 import { renderWithCatalog } from '../../test/renderWithCatalog'
 
 const route = '/products/:productId'
@@ -29,8 +30,26 @@ describe('ProductDetailContainer', () => {
   it('marks products without stock', async () => {
     renderWithCatalog(<ProductDetailPage />, { path: '/products/MN-MON-0003', route })
 
-    expect(await screen.findByText('Sin stock')).toBeInTheDocument()
+    // The stock badge and the disabled add-to-cart button both say "Sin stock".
+    expect(await screen.findByRole('button', { name: 'Sin stock' })).toBeDisabled()
+    expect(screen.getAllByText('Sin stock')).toHaveLength(2)
     expect(screen.queryByText(/unidades disponibles/)).not.toBeInTheDocument()
+  })
+
+  it('adds the product to the cart from the detail', async () => {
+    const user = userEvent.setup()
+    const cartApi = createFakeCartApi()
+    const addItem = vi.fn(cartApi.addItem)
+    renderWithCatalog(<ProductDetailPage />, {
+      cartApi: { ...cartApi, addItem },
+      path: '/products/MN-MON-0001',
+      route,
+    })
+
+    await user.click(await screen.findByRole('button', { name: 'Agregar al carrito: Flux Vision 24 QHD IPS' }))
+
+    expect(addItem).toHaveBeenCalledWith('MN-MON-0001', 1)
+    expect(await screen.findByText('Agregado al carrito')).toBeInTheDocument()
   })
 
   it('says the product does not exist instead of showing an error', async () => {

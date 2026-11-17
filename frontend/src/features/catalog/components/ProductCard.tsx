@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { ProductSummary } from '../../../api/types'
 import { Card } from '../../../components/ui'
@@ -7,7 +8,13 @@ import { PriceTag } from './PriceTag'
 import { StockBadge } from './StockBadge'
 import styles from './ProductCard.module.css'
 
-export function ProductCard({ product }: { product: ProductSummary }) {
+export interface ProductCardProps {
+  product: ProductSummary
+  /** Slot for the purchase actions (add to cart), supplied by the container. */
+  actions?: ReactNode
+}
+
+export function ProductCard({ product, actions }: ProductCardProps) {
   return (
     <Card padding="none" className={styles.card}>
       <img src={product.image_url} alt="" className={styles.image} loading="lazy" />
@@ -30,6 +37,7 @@ export function ProductCard({ product }: { product: ProductSummary }) {
           <PriceTag price={product.price} />
           <StockBadge availableQty={product.available_qty} />
         </div>
+        {actions && <div className={styles.actions}>{actions}</div>}
       </div>
     </Card>
   )

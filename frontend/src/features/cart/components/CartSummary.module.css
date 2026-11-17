@@ -1,0 +1,20 @@
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.count {
+  color: var(--color-text-muted);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-xl);
+}

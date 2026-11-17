@@ -148,6 +148,10 @@ export const size = {
   productCardMinWidth: '220px',
   /** Product image in the detail screen. */
   detailImageWidth: '480px',
+  /** Cart layout: product thumbnail, quantity number between the stepper buttons, summary column. */
+  cartImage: '80px',
+  quantityDisplayWidth: '32px',
+  cartSummaryWidth: '320px',
 } as const
 
 export const zIndex = {

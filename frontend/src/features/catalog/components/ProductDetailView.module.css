@@ -128,3 +128,7 @@
   margin: 0;
   padding-left: var(--space-6);
 }
+
+.actions {
+  display: flex;
+}

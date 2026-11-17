@@ -34,6 +34,10 @@ export type ApiErrorCode =
   | 'LLM_UNAVAILABLE'
   | 'STT_UNAVAILABLE'
   | 'INTERNAL_ERROR'
+  | 'NOT_FOUND'
+  | 'METHOD_NOT_ALLOWED'
+  | 'HTTP_ERROR'
+  | 'CONVERSATION_NOT_FOUND'
 
 export interface ApiErrorBody {
   code: ApiErrorCode
@@ -178,7 +182,8 @@ export interface ProductComparison {
 export interface CartItem {
   product_id: string
   name: string
-  image_url: string
+  /** The backend can return null when the product has no image. */
+  image_url: string | null
   unit_price: number
   quantity: number
   line_total: number

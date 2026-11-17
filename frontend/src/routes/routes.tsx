@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router'
+import { CartPage } from '../pages/CartPage'
 import { CatalogPage } from '../pages/CatalogPage'
 import { ProductDetailPage } from '../pages/ProductDetailPage'
 import { UiShowcasePage } from '../pages/UiShowcasePage'
@@ -9,6 +10,7 @@ export function AppRoutes() {
     <Routes>
       <Route path={paths.catalog} element={<CatalogPage />} />
       <Route path={paths.productPattern} element={<ProductDetailPage />} />
+      <Route path={paths.cart} element={<CartPage />} />
       <Route path={paths.ui} element={<UiShowcasePage />} />
     </Routes>
   )
