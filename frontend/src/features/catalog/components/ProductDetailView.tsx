@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { ProductDetail, Specification } from '../../../api/types'
 import { Badge, Card } from '../../../components/ui'
@@ -31,7 +32,13 @@ function TagList({ title, items, variant }: { title: string; items: string[]; va
   )
 }
 
-export function ProductDetailView({ product }: { product: ProductDetail }) {
+export interface ProductDetailViewProps {
+  product: ProductDetail
+  /** Slot for the purchase actions (add to cart), supplied by the container. */
+  actions?: ReactNode
+}
+
+export function ProductDetailView({ product, actions }: ProductDetailViewProps) {
   const specGroups = groupSpecifications(product.specifications)
 
   return (
@@ -62,6 +69,7 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
               </span>
             )}
           </div>
+          {actions && <div className={styles.actions}>{actions}</div>}
           <p>{product.short_description}</p>
           <ul className={styles.policies}>
             <li>Garantía: {product.warranty_months} meses</li>

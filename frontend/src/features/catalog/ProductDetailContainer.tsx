@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { ProductDetailView } from './components/ProductDetailView'
 import { StatusMessage } from './components/StatusMessage'
 import { Spinner } from '../../components/ui'
+import { AddToCart } from '../cart/AddToCart'
 import { useCatalogApi } from './catalogApiContext'
 import { useAsyncResource } from './useAsyncResource'
 import styles from './ProductDetailContainer.module.css'
@@ -39,7 +40,18 @@ export function ProductDetailContainer({ productId }: { productId: string }) {
           />
         ))}
 
-      {product.status === 'success' && <ProductDetailView product={product.data} />}
+      {product.status === 'success' && (
+        <ProductDetailView
+          product={product.data}
+          actions={
+            <AddToCart
+              productId={product.data.product_id}
+              productName={product.data.name}
+              availableQty={product.data.available_qty}
+            />
+          }
+        />
+      )}
     </div>
   )
 }

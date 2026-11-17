@@ -77,3 +77,8 @@
   gap: var(--space-2);
   margin-top: auto;
 }
+
+/* Above the title link overlay, so the button stays clickable. */
+.actions {
+  position: relative;
+}

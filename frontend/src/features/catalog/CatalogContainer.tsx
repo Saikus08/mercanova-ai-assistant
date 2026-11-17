@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router'
 import type { ProductListParams } from '../../api/types'
 import { CatalogFilters } from './components/CatalogFilters'
 import { Pagination } from './components/Pagination'
+import { AddToCart } from '../cart/AddToCart'
 import { ProductGrid } from './components/ProductGrid'
 import { StatusMessage } from './components/StatusMessage'
 import { Spinner } from '../../components/ui'
@@ -72,7 +73,17 @@ export function CatalogContainer() {
             <p className={styles.count}>
               {products.data.total === 1 ? '1 producto' : `${products.data.total} productos`}
             </p>
-            <ProductGrid products={products.data.items} />
+            <ProductGrid
+              products={products.data.items}
+              renderActions={(product) => (
+                <AddToCart
+                  productId={product.product_id}
+                  productName={product.name}
+                  availableQty={product.available_qty}
+                  size="sm"
+                />
+              )}
+            />
             <Pagination
               page={products.data.page}
               pageSize={products.data.page_size}

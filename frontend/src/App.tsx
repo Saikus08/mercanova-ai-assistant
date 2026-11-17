@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router'
+import { CartNavLink } from './features/cart/CartNavLink'
 import { AppRoutes } from './routes/routes'
 import { paths } from './routes/paths'
 import styles from './App.module.css'
@@ -16,6 +17,7 @@ export function App() {
             <NavLink to={paths.catalog} end className={navLinkClass}>
               Catálogo
             </NavLink>
+            <CartNavLink />
             <NavLink to={paths.ui} className={navLinkClass}>
               Componentes
             </NavLink>

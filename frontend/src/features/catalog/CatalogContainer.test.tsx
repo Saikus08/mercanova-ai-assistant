@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CatalogApi } from '../../api/catalog'
 import { ApiRequestError } from '../../api/http'
 import { createMockCatalogApi } from '../../api/mocks/mockCatalogApi'
+import { createFakeCartApi } from '../../test/fakeCartApi'
 import { renderWithCatalog } from '../../test/renderWithCatalog'
 import { CatalogContainer } from './CatalogContainer'
 
@@ -24,6 +25,19 @@ describe('CatalogContainer', () => {
       'href',
       '/products/MN-MON-0001',
     )
+  })
+
+  it('adds a product to the cart from its card', async () => {
+    const user = userEvent.setup()
+    const cartApi = createFakeCartApi()
+    const addItem = vi.fn(cartApi.addItem)
+    renderWithCatalog(<CatalogContainer />, { cartApi: { ...cartApi, addItem } })
+    await screen.findByRole('list', { name: 'Productos' })
+
+    await user.click(screen.getByRole('button', { name: 'Agregar al carrito: Flux Vision 24 QHD IPS' }))
+
+    expect(addItem).toHaveBeenCalledWith('MN-MON-0001', 1)
+    expect(await screen.findByText('Agregado al carrito')).toBeInTheDocument()
   })
 
   it('applies the filters from the URL to the request', async () => {
