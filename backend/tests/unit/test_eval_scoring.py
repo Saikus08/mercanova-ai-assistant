@@ -53,8 +53,15 @@ def call(
     }
 
 
-def facts(cart: dict[str, int] | None = None, seconds: float = 1.0, **overrides: Any) -> RunFacts:
-    return RunFacts(result=turn(**overrides), cart_after=cart or {}, seconds=seconds)
+def facts(
+    cart: dict[str, int] | None = None,
+    seconds: float = 1.0,
+    user_texts: tuple[str, ...] = (),
+    **overrides: Any,
+) -> RunFacts:
+    return RunFacts(
+        result=turn(**overrides), cart_after=cart or {}, seconds=seconds, user_texts=user_texts
+    )
 
 
 def automatic(name: str) -> Condition:
@@ -373,6 +380,22 @@ def test_no_invalid_tool_calls_fails_when_a_call_was_malformed_or_blocked(payloa
 def test_no_invalid_tool_calls_passes_when_a_tool_failed_for_a_business_reason(payload):
     run = facts(tools_used=[call("add_to_cart", ok=False, result=payload)])
     assert automatic("no_invalid_tool_calls").check(run)
+
+
+def test_no_ungrounded_amounts_passes_when_the_reply_repeats_an_amount_the_user_wrote():
+    run = facts(
+        reply="Todo dentro de tu presupuesto de USD 200",
+        user_texts=("No quiero gastar más de USD 200",),
+    )
+    assert automatic("no_ungrounded_amounts").check(run)
+
+
+def test_no_ungrounded_amounts_fails_when_the_amount_is_neither_the_users_nor_a_tools():
+    run = facts(
+        reply="Todo dentro de tu presupuesto de USD 300",
+        user_texts=("No quiero gastar más de USD 200",),
+    )
+    assert not automatic("no_ungrounded_amounts").check(run)
 
 
 def test_no_ungrounded_amounts_fails_when_reply_amount_is_in_no_tool_result():

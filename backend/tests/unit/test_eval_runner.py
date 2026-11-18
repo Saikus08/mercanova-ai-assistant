@@ -337,3 +337,19 @@ def test_progress_line_shows_scores_and_seconds_or_the_error():
 
     assert progress_line(ok) == "CX run 2: task=1.00 tool=1.00 grounding=1.00 1.5s"
     assert progress_line(failed) == "CX run 2: ERROR RuntimeError: boom"
+
+
+def test_execute_run_lets_the_reply_repeat_an_amount_the_user_wrote_in_the_history():
+    cart = FakeCart()
+    setup = Setup(
+        shown=(),
+        goal="",
+        history=(("user", "Quiero auriculares, hasta USD 200"), ("assistant", "Dale.")),
+        cart=(),
+    )
+    case = make_case(setup)
+    loop = FakeLoop(cart, result=turn(reply="Hola, dentro de tus USD 200"))
+
+    record = execute_run(case, 1, loop, cart, "eval-1")
+
+    assert record["conditions"]["no_ungrounded_amounts"] is True

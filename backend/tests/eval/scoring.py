@@ -62,6 +62,9 @@ class RunFacts:
     result: TurnResult
     cart_after: dict[str, int]  # product_id -> quantity left in the cart after the turn
     seconds: float
+    # Everything the customer wrote up to this turn (history plus the message). The agent allows a
+    # reply to repeat those numbers (for example "dentro de tu presupuesto de USD 200").
+    user_texts: tuple[str, ...] = ()
 
     @property
     def reply(self) -> str:
@@ -280,6 +283,14 @@ def _tool_numbers(facts: RunFacts) -> set[Decimal]:
     return numbers
 
 
+def _allowed_numbers(facts: RunFacts) -> set[Decimal]:
+    """Numbers a reply may quote: those of the tool results and those the customer wrote."""
+    numbers = _tool_numbers(facts)
+    for text in facts.user_texts:
+        numbers |= numbers_in_text(text)
+    return numbers
+
+
 def _tool_text(facts: RunFacts) -> str:
     return json.dumps([entry["result"] for entry in facts.result.tools_used], ensure_ascii=False)
 
@@ -330,7 +341,7 @@ AUTOMATIC_CONDITIONS: tuple[Condition, ...] = (
     Condition(
         "no_ungrounded_amounts",
         "grounding",
-        lambda f: not ungrounded_amounts(f.reply, _tool_numbers(f)),
+        lambda f: not ungrounded_amounts(f.reply, _allowed_numbers(f)),
     ),
     Condition("no_ungrounded_product_ids", "grounding", _no_ungrounded_product_ids),
     Condition(

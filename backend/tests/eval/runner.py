@@ -134,7 +134,10 @@ def execute_run(
         seconds = clock() - started
         if result.stop_reason is StopReason.LLM_UNAVAILABLE:
             raise ModelUnavailable(f"The model did not answer in {case.case_id}")
-        facts = scoring.RunFacts(result, cart.quantities(session_id), seconds)
+        user_texts = tuple(text for role, text in case.setup.history if role == "user") + (
+            case.message,
+        )
+        facts = scoring.RunFacts(result, cart.quantities(session_id), seconds, user_texts)
         return _scored_record(case, run_index, facts)
     except ModelUnavailable:
         raise
