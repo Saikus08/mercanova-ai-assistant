@@ -96,7 +96,7 @@ docker compose exec -e OLLAMA_BASE_URL=http://host.docker.internal:11434 backend
 docker compose exec backend sh -c "python -m tests.eval.report tests/eval/results/*.json --markdown"
 ```
 
-El runner usa una sesión de prueba por corrida y borra su carrito al terminar. Los resultados se guardan en `backend/tests/eval/results/` (no se versionan).
+El runner usa una sesión de prueba por corrida y borra su carrito al terminar. Los resultados se guardan en `backend/tests/eval/results/`. Los tres archivos de este informe están versionados como evidencia: contienen el puntaje y las respuestas de cada corrida, y no los resultados de las herramientas ni datos personales.
 
 ## Fuentes
 
