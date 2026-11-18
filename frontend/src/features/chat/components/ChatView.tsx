@@ -3,7 +3,7 @@ import { Button } from '../../../components/ui'
 import type { ChatTurn } from '../chatState'
 import { AssistantMessage } from './AssistantMessage'
 import type { BlockActions } from './ChatBlockView'
-import { ChatComposer } from './ChatComposer'
+import { ChatComposer, type VoiceControls } from './ChatComposer'
 import { UserMessage } from './UserMessage'
 import styles from './ChatView.module.css'
 
@@ -17,10 +17,11 @@ export interface ChatViewProps extends Omit<BlockActions, 'onSelectOption'> {
   turns: ChatTurn[]
   busy: boolean
   onSend: (text: string) => void
+  voice?: VoiceControls
 }
 
 /** Chat screen: the conversation, examples when it is empty and the message field. */
-export function ChatView({ turns, busy, onSend, ...actions }: ChatViewProps) {
+export function ChatView({ turns, busy, onSend, voice, ...actions }: ChatViewProps) {
   const endRef = useRef<HTMLDivElement>(null)
   const lastTurn = turns.at(-1)
 
@@ -71,7 +72,7 @@ export function ChatView({ turns, busy, onSend, ...actions }: ChatViewProps) {
       )}
 
       <div className={styles.composer}>
-        <ChatComposer onSend={onSend} busy={busy} />
+        <ChatComposer onSend={onSend} busy={busy} voice={voice} />
       </div>
     </section>
   )

@@ -1,0 +1,10 @@
+/* Square button the same height as the message field. */
+.button {
+  width: var(--size-control-height-md);
+  padding: 0;
+}
+
+.icon {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}

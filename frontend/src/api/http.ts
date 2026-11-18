@@ -49,17 +49,21 @@ function isApiError(body: unknown): body is ApiError {
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
-/** Sends a request under `/api` with the session header and maps contract errors to `ApiRequestError`. */
+/**
+ * Sends a request under `/api` with the session header and maps contract errors to `ApiRequestError`.
+ * A `FormData` body goes as multipart: the browser sets its Content-Type with the boundary.
+ */
 async function request<T>(method: HttpMethod, path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json', 'X-Session-Id': getSessionId() }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = body instanceof FormData
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
 
   let response: Response
   try {
     response = await fetch(`/api${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       signal,
     })
   } catch (cause) {
@@ -85,6 +89,9 @@ export const apiGet = <T>(path: string, signal?: AbortSignal): Promise<T> =>
 
 export const apiPost = <T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> =>
   request<T>('POST', path, body, signal)
+
+export const apiPostForm = <T>(path: string, form: FormData, signal?: AbortSignal): Promise<T> =>
+  request<T>('POST', path, form, signal)
 
 export const apiPatch = <T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> =>
   request<T>('PATCH', path, body, signal)

@@ -265,6 +265,15 @@ export interface CheckoutRequest {
 
 export type InputMode = 'text' | 'voice'
 
+// ---------- Voice ----------
+
+/** POST /api/transcribe */
+export interface TranscribeResponse {
+  text: string
+  language: string
+  duration_s: number
+}
+
 export interface ChatRequest {
   message: string
   /** null on the first message of a conversation. */
