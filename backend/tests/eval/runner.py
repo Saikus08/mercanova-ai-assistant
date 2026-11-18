@@ -239,9 +239,13 @@ def progress_line(record: dict[str, Any]) -> str:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    from sqlalchemy import delete
+    from sqlalchemy.orm import Session
+
     from app.adapters.llm.ollama_chat import OllamaChat
     from app.adapters.llm.ollama_embeddings import OllamaEmbeddings
     from app.adapters.persistence.cart_repository import SqlAlchemyCartRepository
+    from app.adapters.persistence.orm.purchase import Cart as CartRow
     from app.adapters.persistence.catalog_repository import SqlAlchemyCatalogRepository
     from app.adapters.persistence.semantic_search_repository import SqlAlchemySemanticSearch
     from app.adapters.persistence.session import get_session_factory
@@ -279,7 +283,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
 
     class SqlCart:
-        def __init__(self, repository: SqlAlchemyCartRepository) -> None:
+        def __init__(self, session: Session, repository: SqlAlchemyCartRepository) -> None:
+            self._session = session
             self._repository = repository
 
         def add(self, session_id: str, product_id: str, quantity: int) -> None:
@@ -291,6 +296,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         def clear(self, session_id: str) -> None:
             self._repository.clear(session_id)
+            # clear() empties the items; the cart row of an eval session must not stay either.
+            self._session.execute(delete(CartRow).where(CartRow.session_id == session_id))
+            self._session.commit()
 
     started_at = datetime.now(UTC)
     header = build_header(args, settings.llm_temperature, settings.llm_num_ctx, started_at)
@@ -324,7 +332,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         settings.agent_history_messages,
                     )
                     record = execute_run(
-                        case, run_index, loop, SqlCart(cart_repository), session_id
+                        case, run_index, loop, SqlCart(session, cart_repository), session_id
                     )
                 entry["runs"].append(record)
                 print(progress_line(record), flush=True)
