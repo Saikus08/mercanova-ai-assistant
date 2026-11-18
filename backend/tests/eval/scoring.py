@@ -93,6 +93,14 @@ def not_called(tool: str, *, metric: Metric = "tool") -> Condition:
     return Condition(f"not_called:{tool}", metric, lambda f: not f.calls_of(tool))
 
 
+def called_any(*tools: str, metric: Metric = "tool") -> Condition:
+    return Condition(
+        f"called_any:{'|'.join(tools)}",
+        metric,
+        lambda f: any(f.calls_of(tool) for tool in tools),
+    )
+
+
 def no_tool_calls(*, metric: Metric = "tool") -> Condition:
     return Condition("no_tool_calls", metric, lambda f: not f.tool_calls)
 
@@ -105,6 +113,19 @@ def called_with(tool: str, *, metric: Metric = "tool", **expected_args: Any) -> 
         )
 
     name = f"called_with:{tool}:{json.dumps(expected_args, sort_keys=True)}"
+    return Condition(name, metric, check)
+
+
+def no_call_with(tool: str, *, metric: Metric = "tool", **forbidden_args: Any) -> Condition:
+    """No call to the tool carries ALL the given key/values."""
+
+    def check(facts: RunFacts) -> bool:
+        return not any(
+            all(key in args and args[key] == value for key, value in forbidden_args.items())
+            for args in facts.calls_of(tool)
+        )
+
+    name = f"no_call_with:{tool}:{json.dumps(forbidden_args, sort_keys=True)}"
     return Condition(name, metric, check)
 
 

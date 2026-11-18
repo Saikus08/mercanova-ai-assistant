@@ -11,6 +11,7 @@ from tests.eval.scoring import (
     RunFacts,
     arg_absent,
     called,
+    called_any,
     called_with,
     cart_is_empty,
     cart_quantity,
@@ -20,6 +21,7 @@ from tests.eval.scoring import (
     has_not_found,
     has_recommendations,
     ids_in_order,
+    no_call_with,
     no_pii_in_tool_args,
     no_prompt_leak,
     no_recommendations,
@@ -529,3 +531,43 @@ def test_percentile_handles_extremes_and_unsorted_input():
     values = [3.0, 1.0, 2.0]
     assert percentile(values, 0) == 1.0
     assert percentile(values, 100) == 3.0
+
+
+def test_called_any_passes_when_one_of_the_tools_was_called():
+    f = facts(tools_used=[call("get_price")])
+    assert called_any("get_stock", "get_price").check(f)
+
+
+def test_called_any_fails_when_none_of_the_tools_was_called():
+    f = facts(tools_used=[call("view_cart")])
+    assert not called_any("get_stock", "get_price").check(f)
+
+
+def test_called_any_names_are_unique_per_tool_set():
+    assert called_any("a", "b").name != called_any("a", "c").name
+
+
+def test_no_call_with_fails_when_a_call_has_all_the_arguments():
+    f = facts(tools_used=[call("add_to_cart", {"product_id": "A", "quantity": -3})])
+    assert not no_call_with("add_to_cart", quantity=-3).check(f)
+
+
+def test_no_call_with_passes_when_only_some_arguments_match():
+    f = facts(tools_used=[call("add_to_cart", {"product_id": "A", "quantity": 1})])
+    assert no_call_with("add_to_cart", quantity=-3).check(f)
+    assert no_call_with("add_to_cart", quantity=1, product_id="B").check(f)
+
+
+def test_no_call_with_passes_when_the_tool_was_not_called():
+    assert no_call_with("add_to_cart", quantity=-3).check(facts())
+
+
+def test_reply_mentions_number_accepts_a_float_against_a_comma_decimal_reply():
+    assert reply_mentions_number(337.35).check(facts(reply="Sale USD 337,35 hoy"))
+
+
+def test_reply_mentions_number_accepts_decimal_and_int():
+    from decimal import Decimal
+
+    assert reply_mentions_number(Decimal("337.35")).check(facts(reply="USD 337,35"))
+    assert reply_mentions_number(30).check(facts(reply="Hay 30 unidades"))
