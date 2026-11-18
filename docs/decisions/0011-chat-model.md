@@ -36,7 +36,7 @@ Los números salen de 60 corridas por modelo sobre 20 casos (`docs/model-compari
 - **El estudio favorece a Llama sin querer:** el prompt y las guardas se ajustaron mirando sus fallos. Aun así Qwen rindió mejor.
 - **Pocas corridas (3 por caso) y 20 casos.** Vale la tendencia, no un caso suelto.
 - **Defectos compartidos que esta decisión no resuelve:** consultar el stock o el precio por el nombre del producto falla en los dos modelos, y ninguno responde bien a "Comprámelo" (avisar que se confirma en la interfaz). Se corrigen aparte.
-- **Un cambio de configuración:** el valor por defecto de `LLM_THINK` hoy es "el del modelo" (activado en Qwen3). Implementar esta decisión exige que `config.py` y `.env.example` pasen a `false`.
+- **Un cambio de configuración:** el valor por defecto de `LLM_THINK` era "el del modelo" (activado en Qwen3). Esta decisión lo fija en `false` en `backend/app/config.py`, con un test. `.env.example` también debe decir `LLM_THINK=false`, y lo actualiza el equipo a mano.
 
 ## Fuentes
 
