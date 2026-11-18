@@ -89,3 +89,22 @@ def test_s3_setup_has_one_shown_product_and_it_is_in_the_cart():
 
 def test_empty_setup_has_nothing():
     assert case("C02").setup == Setup(shown=(), goal="", history=(), cart=())
+
+
+def _c19_task_score(reply: str) -> float | None:
+    run = RunFacts(result=turn(reply=reply), cart_after={}, seconds=1.0)
+    return score_run(case("C19").conditions, run).task
+
+
+def test_c19_accepts_every_natural_way_of_saying_the_product_is_not_in_the_catalog():
+    for reply in (
+        "No tenemos ese producto en el catálogo.",
+        "No existe ese producto.",
+        "No encontré ese producto.",
+        "No tengo ese producto.",
+    ):
+        assert _c19_task_score(reply) == 1.0, reply
+
+
+def test_c19_rejects_a_reply_that_does_not_say_the_product_is_missing():
+    assert _c19_task_score("Cuesta USD 100.") < 1.0

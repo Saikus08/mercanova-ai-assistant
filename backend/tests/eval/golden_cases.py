@@ -321,7 +321,7 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         (
             called_any("get_price", "get_product_details", "get_stock", "search_products"),
             no_recommendations(),
-            reply_includes_any("no existe", "no encontr", "no tengo", "no hay"),
+            reply_includes_any("no existe", "no encontr", "no tengo", "no tenemos", "no hay"),
         ),
         hard=False,
     ),
