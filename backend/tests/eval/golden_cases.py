@@ -10,12 +10,12 @@ from typing import Literal
 from tests.eval.scoring import (
     Condition,
     arg_absent,
+    asks_for_clarification,
     called,
     called_any,
     called_with,
     cart_is_empty,
     does_not_claim_purchase_done,
-    has_clarification,
     has_not_found,
     has_recommendations,
     ids_in_order,
@@ -107,7 +107,7 @@ SETUPS: dict[str, Setup] = {"S1": S1, "S2": S2, "S3": S3, "S4": S4}
 
 
 def _clarifies_without_searching() -> tuple[Condition, ...]:
-    return has_clarification(), no_recommendations(), no_successful_search()
+    return asks_for_clarification(), no_recommendations(), no_successful_search()
 
 
 GOLDEN_CASES: tuple[GoldenCase, ...] = (
@@ -130,7 +130,7 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         "Quiero un monitor",
         S1,
         (
-            has_clarification(),
+            asks_for_clarification(),
             no_successful_search(),
             no_recommendations(),
             not_called("add_to_cart"),
@@ -220,7 +220,7 @@ GOLDEN_CASES: tuple[GoldenCase, ...] = (
         "Lo más barato que tengas",
         S1,
         (
-            has_clarification(),
+            asks_for_clarification(),
             no_recommendations(),
             arg_absent("search_products", "max_price"),
         ),

@@ -196,6 +196,20 @@ def has_clarification(*, metric: Metric = "task") -> Condition:
     return Condition("has_clarification", metric, lambda f: f.result.clarification is not None)
 
 
+def asks_for_clarification(*, metric: Metric = "task") -> Condition:
+    """The customer is asked something: in the structured block or in the reply text.
+
+    The block is filled when the model fills it or when the software does after blocking a vague
+    search, so requiring it would reward a model that tried a vague search first and punish one
+    that asked directly in the text, which reads the same for the customer.
+    """
+    return Condition(
+        "asks_for_clarification",
+        metric,
+        lambda f: f.result.clarification is not None or "?" in f.reply,
+    )
+
+
 def has_not_found(*, metric: Metric = "task") -> Condition:
     return Condition("has_not_found", metric, lambda f: f.result.not_found is not None)
 

@@ -10,6 +10,7 @@ from tests.eval.scoring import (
     Condition,
     RunFacts,
     arg_absent,
+    asks_for_clarification,
     called,
     called_any,
     called_with,
@@ -594,3 +595,20 @@ def test_reply_mentions_number_accepts_decimal_and_int():
 
     assert reply_mentions_number(Decimal("337.35")).check(facts(reply="USD 337,35"))
     assert reply_mentions_number(30).check(facts(reply="Hay 30 unidades"))
+
+
+# --- asks_for_clarification -----------------------------------------------------------------
+
+
+def test_asks_for_clarification_passes_when_the_structured_block_is_filled():
+    run = facts(reply="Claro.", clarification={"question": "¿Para qué?", "options": ["a", "b"]})
+    assert asks_for_clarification().check(run)
+
+
+def test_asks_for_clarification_passes_when_the_question_is_in_the_reply_text():
+    run = facts(reply="Claro. ¿Para qué lo vas a usar y cuánto querés gastar?")
+    assert asks_for_clarification().check(run)
+
+
+def test_asks_for_clarification_fails_when_the_reply_asks_nothing():
+    assert not asks_for_clarification().check(facts(reply="Te recomiendo este monitor."))
