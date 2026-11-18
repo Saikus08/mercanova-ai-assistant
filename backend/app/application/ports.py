@@ -28,6 +28,7 @@ from app.domain.purchase import (
     StockRow,
 )
 from app.domain.search import SearchFilters, SearchHit
+from app.domain.speech import Transcript
 
 
 class DatabaseProbe(Protocol):
@@ -214,5 +215,16 @@ class SemanticSearch(Protocol):
         older model or prefix scheme are never mixed with the query vector.
 
         Price and stock filters are evaluated against the database at query time.
+        """
+        ...
+
+
+class SpeechToText(Protocol):
+    def transcribe(self, audio: bytes, max_seconds: float) -> Transcript:
+        """Text of the recorded audio (webm, ogg or wav bytes).
+
+        Raises AudioUnreadable when the bytes cannot be decoded or hold no samples,
+        InvalidAudio when the audio is longer than ``max_seconds`` (checked before running the
+        model) and SpeechToTextUnavailable when the model cannot load or fails.
         """
         ...

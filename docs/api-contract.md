@@ -267,7 +267,15 @@ Devuelve los mensajes de una conversación, para restaurar el chat si el usuario
 
 Recibe el audio grabado en el navegador como `multipart/form-data`, en el campo `audio`. Formatos webm, ogg o wav, de hasta 60 segundos y 10 MB.
 
-Devuelve `{ "text": "necesito auriculares…", "language": "es", "duration_s": 4.2 }`. Errores: `AUDIO_UNREADABLE`, `STT_UNAVAILABLE`.
+Devuelve `{ "text": "necesito auriculares…", "language": "es", "duration_s": 4.2 }`. No necesita el encabezado `X-Session-Id`, porque no guarda nada.
+
+Errores:
+
+| Código HTTP | `code` | Cuándo |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Falta el campo `audio`, el formato no es webm, ogg o wav, o el audio supera los 10 MB o los 60 segundos. `details.errors[0].field` es `audio` |
+| 422 | `AUDIO_UNREADABLE` | El audio llegó vacío, no se puede decodificar o no tiene voz reconocible |
+| 503 | `STT_UNAVAILABLE` | El modelo de voz a texto no se pudo cargar o falló al transcribir |
 
 Con ese texto, el frontend llama a `/api/chat/stream` con `input_mode: "voice"`. Desde ahí la consulta sigue el mismo camino que una escrita, como pide la letra.
 

@@ -126,7 +126,10 @@ Alembic compara los modelos con la base y propone el cambio. Hay que revisar el 
 make test-backend                       # o: docker compose exec backend pytest
 docker compose exec backend pytest tests/unit          # solo los que no usan base
 docker compose exec backend pytest -m integration      # solo los de base de datos
+make test-stt                           # voz a texto con el modelo real (descarga el modelo la primera vez)
 ```
+
+**Voz a texto en los tests.** Los tests comunes usan el decodificador de audio real con un modelo falso, así no descargan nada. `make test-stt` transcribe un audio de ejemplo en español (`tests/fixtures/necesito_auriculares.wav`, generado con la voz sintética de Windows) con el modelo real de faster-whisper. No corre en CI porque el modelo `small` ocupa unos 460 MB en disco.
 
 **Cómo se aíslan los tests de la base de desarrollo.** Los tests de integración nunca escriben en la base `mercanova` que usa la aplicación:
 
