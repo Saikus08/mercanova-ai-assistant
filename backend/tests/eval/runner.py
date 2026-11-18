@@ -248,8 +248,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     from app.adapters.llm.ollama_chat import OllamaChat
     from app.adapters.llm.ollama_embeddings import OllamaEmbeddings
     from app.adapters.persistence.cart_repository import SqlAlchemyCartRepository
-    from app.adapters.persistence.orm.purchase import Cart as CartRow
     from app.adapters.persistence.catalog_repository import SqlAlchemyCatalogRepository
+    from app.adapters.persistence.orm.purchase import Cart as CartRow
     from app.adapters.persistence.semantic_search_repository import SqlAlchemySemanticSearch
     from app.adapters.persistence.session import get_session_factory
     from app.application.agent.cart_tools import build_cart_tools
