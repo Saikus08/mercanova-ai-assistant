@@ -52,6 +52,9 @@ class ScriptedModel:
             raise reply
         return reply
 
+    def close(self):
+        self.closed = True
+
 
 class Boom(BaseException):
     """Not an ``Exception``: what a worker thread gets on KeyboardInterrupt or SystemExit."""
@@ -65,6 +68,9 @@ class FakeEmbedder:
 
     def embed_query(self, text):
         return [1.0] + [0.0] * 767
+
+    def close(self):
+        pass
 
 
 def text_reply(text="ok"):
@@ -505,3 +511,33 @@ def test_a_stream_to_a_busy_conversation_ends_with_a_busy_error_event(
     events = parse_sse(response.text)
     assert events[-1][0] == "error"
     assert events[-1][1]["error"]["code"] == "CONVERSATION_BUSY"
+
+
+# --- the real service scope ----------------------------------------------------------------
+
+
+def test_stream_through_the_real_scope_ends_with_done_and_closes_what_it_opened(
+    client, db_session, monkeypatch
+):
+    """Only the session factory and the Ollama clients are replaced; the scope is the real one."""
+    model = ScriptedModel(*plain_turn("Hola desde el scope real"))
+    opened: list[Session] = []
+
+    def session_factory():
+        session = Session(bind=db_session.get_bind(), join_transaction_mode="create_savepoint")
+        opened.append(session)
+        return session
+
+    monkeypatch.setattr(chat_module, "get_session_factory", lambda: session_factory)
+    monkeypatch.setattr(chat_module, "OllamaChat", lambda *args, **kwargs: model)
+    monkeypatch.setattr(chat_module, "OllamaEmbeddings", lambda *args, **kwargs: FakeEmbedder())
+
+    response = post_with_deadline(client, path="/api/chat/stream")
+
+    events = parse_sse(response.text)
+    assert [name for name, _ in events][0] == "meta"
+    assert events[-1][0] == "done"
+    assert events[-1][1]["reply"] == "Hola desde el scope real"
+    assert model.closed is True
+    [session] = opened
+    assert session.in_transaction() is False  # closed: nothing left open on the connection

@@ -196,22 +196,28 @@ def get_service_scope() -> ServiceScope:
     @contextmanager
     def scope() -> Iterator[ChatService]:
         settings = get_settings()
-        session = get_session_factory()()
-        model = OllamaChat(
-            settings.ollama_base_url,
-            settings.llm_model,
-            settings.llm_timeout_seconds,
-            temperature=settings.llm_temperature,
-            num_ctx=settings.llm_num_ctx,
-            think=settings.llm_think,
-        )
-        embedder = OllamaEmbeddings(
-            settings.ollama_base_url, settings.embedding_model, settings.embedding_timeout_seconds
-        )
+        opened: list[Any] = []  # closed in reverse order, including when a later step fails
         try:
+            session = get_session_factory()()
+            opened.append(session)
+            model = OllamaChat(
+                settings.ollama_base_url,
+                settings.llm_model,
+                settings.llm_timeout_seconds,
+                temperature=settings.llm_temperature,
+                num_ctx=settings.llm_num_ctx,
+                think=settings.llm_think,
+            )
+            opened.append(model)
+            embedder = OllamaEmbeddings(
+                settings.ollama_base_url,
+                settings.embedding_model,
+                settings.embedding_timeout_seconds,
+            )
+            opened.append(embedder)
             yield build_chat_service(session, model, embedder)
         finally:
-            for resource in (embedder, model, session):
+            for resource in reversed(opened):
                 try:
                     resource.close()
                 except Exception:
