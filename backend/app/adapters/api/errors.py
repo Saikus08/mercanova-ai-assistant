@@ -19,7 +19,7 @@ from app.domain.cart import (
     ProductInactive,
 )
 from app.domain.catalog import InvalidComparison, ProductNotFound
-from app.domain.conversation import ConversationNotFound, InvalidMessage
+from app.domain.conversation import ConversationBusy, ConversationNotFound, InvalidMessage
 from app.domain.purchase import (
     CartEmpty,
     InvalidCheckout,
@@ -169,6 +169,15 @@ def _conversation_not_found(_: Request, error: Exception) -> JSONResponse:
     return error_response(404, "CONVERSATION_NOT_FOUND", "La conversación no existe.")
 
 
+def _conversation_busy(_: Request, error: Exception) -> JSONResponse:
+    return error_response(
+        409,
+        "CONVERSATION_BUSY",
+        "La conversación todavía está respondiendo el mensaje anterior. "
+        "Probá de nuevo en unos segundos.",
+    )
+
+
 def _invalid_message(_: Request, error: Exception) -> JSONResponse:
     return error_response(
         400,
@@ -242,6 +251,7 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(InvalidAudio, _invalid_audio)
     app.add_exception_handler(SpeechToTextUnavailable, _stt_unavailable)
     app.add_exception_handler(ConversationNotFound, _conversation_not_found)
+    app.add_exception_handler(ConversationBusy, _conversation_busy)
     app.add_exception_handler(InvalidMessage, _invalid_message)
     app.add_exception_handler(MissingSession, _missing_session)
     app.add_exception_handler(InvalidSessionId, _invalid_session_id)

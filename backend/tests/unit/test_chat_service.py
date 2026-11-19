@@ -1,5 +1,9 @@
 """Chat use case: conversation lifecycle around one agent turn, with in-memory fakes."""
 
+import threading
+import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,6 +16,7 @@ from app.domain.agent import AgentState, ChatMessage, LLMUnavailable, Role, Stop
 from app.domain.catalog import ProductSummary
 from app.domain.conversation import (
     MAX_MESSAGE_CHARS,
+    ConversationBusy,
     ConversationNotFound,
     InvalidMessage,
     MessageRole,
@@ -33,6 +38,18 @@ class FakeConversations:
         self.created: list[str] = []
         self.appended: list[dict[str, Any]] = []
         self.recent_limits: list[int] = []
+        self.log: list[str] = []
+        self.locks: dict[str, threading.Lock] = {}
+
+    @contextmanager
+    def turn_lock(self, conversation_id: str) -> Iterator[None]:
+        lock = self.locks.setdefault(conversation_id, threading.Lock())
+        with lock:
+            self.log.append("lock")
+            try:
+                yield
+            finally:
+                self.log.append("unlock")
 
     def create(self, session_id: str) -> str:
         conversation_id = f"conv-{len(self.created) + 1}"
@@ -42,6 +59,7 @@ class FakeConversations:
         return conversation_id
 
     def load_state(self, conversation_id: str, session_id: str) -> AgentState:
+        self.log.append("load")
         owner, state = self.states.get(conversation_id, (None, None))
         if owner != session_id or state is None:
             raise ConversationNotFound(conversation_id)
@@ -60,6 +78,7 @@ class FakeConversations:
         tool_calls: list[dict],
         state: AgentState,
     ) -> None:
+        self.log.append("append")
         self.appended.append(
             {
                 "conversation_id": conversation_id,
@@ -288,3 +307,91 @@ def test_the_state_given_to_the_runner_is_the_one_saved() -> None:
 
     assert conversations.appended[0]["state"] is runner.calls[0]["state"]
     assert runner.calls[0]["state"] is conversations.states[cid][1]
+
+
+# --- one turn at a time per conversation ---------------------------------------------------
+
+
+def test_an_existing_conversation_is_locked_from_loading_the_state_to_saving_the_turn() -> None:
+    service, _, conversations, _ = make_service()
+    cid = conversations.create(SESSION)
+
+    service.handle(SESSION, "hola", cid)
+
+    assert conversations.log == ["lock", "load", "append", "unlock"]
+
+
+def test_a_new_conversation_needs_no_lock() -> None:
+    service, _, conversations, _ = make_service()
+
+    service.handle(SESSION, "hola", None)
+
+    assert "lock" not in conversations.log
+
+
+def test_the_lock_is_released_when_the_turn_fails() -> None:
+    service, runner, conversations, _ = make_service()
+    cid = conversations.create(SESSION)
+    runner.result = turn(stop_reason=StopReason.LLM_UNAVAILABLE)
+
+    with pytest.raises(LLMUnavailable):
+        service.handle(SESSION, "hola", cid)
+
+    assert conversations.log[-1] == "unlock"
+
+
+def test_a_busy_conversation_propagates_without_running_the_turn() -> None:
+    service, runner, conversations, _ = make_service()
+    cid = conversations.create(SESSION)
+
+    @contextmanager
+    def busy(conversation_id: str) -> Iterator[None]:
+        raise ConversationBusy(conversation_id)
+        yield
+
+    conversations.turn_lock = busy  # type: ignore[method-assign]
+
+    with pytest.raises(ConversationBusy):
+        service.handle(SESSION, "hola", cid)
+
+    assert runner.calls == []
+
+
+class IsolatedConversations(FakeConversations):
+    """Each load returns its own copy of the state, like a database read."""
+
+    def load_state(self, conversation_id: str, session_id: str) -> AgentState:
+        state = super().load_state(conversation_id, session_id)
+        return AgentState.from_dict(state.to_dict())
+
+    def append_turn(self, conversation_id: str, *args: Any) -> None:
+        super().append_turn(conversation_id, *args)
+        owner, _ = self.states[conversation_id]
+        self.states[conversation_id] = (owner, args[-1])
+
+
+class SlowGoalRunner(FakeRunner):
+    """Appends the message to the goal after a pause, so unlocked turns overwrite each other."""
+
+    def run_turn(self, state, history, user_message, context, on_event=None, trace_id=None):
+        previous = state.goal
+        time.sleep(0.15)
+        state.goal = f"{previous}|{user_message}".strip("|")
+        return self.result
+
+
+def test_two_simultaneous_turns_of_one_conversation_both_reach_the_saved_state() -> None:
+    conversations = IsolatedConversations()
+    service = ChatService(SlowGoalRunner(turn()), conversations, FakeCatalog([]), 4)
+    cid = conversations.create(SESSION)
+
+    threads = [
+        threading.Thread(target=service.handle, args=(SESSION, text, cid)) for text in ("a", "b")
+    ]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(5)
+
+    goal = conversations.states[cid][1].goal
+    assert sorted(goal.split("|")) == ["a", "b"]

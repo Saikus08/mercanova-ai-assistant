@@ -38,7 +38,12 @@ from app.application.chat import ChatReply, ChatService
 from app.application.ports import ChatModel, EmbeddingModel
 from app.config import get_settings
 from app.domain.agent import LLMUnavailable
-from app.domain.conversation import ConversationNotFound, InvalidMessage, MessageRole
+from app.domain.conversation import (
+    ConversationBusy,
+    ConversationNotFound,
+    InvalidMessage,
+    MessageRole,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +60,10 @@ LLM_UNAVAILABLE_MESSAGE = (
     "El asistente no está disponible por ahora. El resto de la tienda sigue funcionando."
 )
 CONVERSATION_NOT_FOUND_MESSAGE = "La conversación no existe."
+CONVERSATION_BUSY_MESSAGE = (
+    "La conversación todavía está respondiendo el mensaje anterior. "
+    "Probá de nuevo en unos segundos."
+)
 INTERNAL_ERROR_MESSAGE = "Ocurrió un error inesperado."
 
 
@@ -106,6 +115,8 @@ def error_event(error: Exception) -> tuple[str, dict]:
         code, message = "LLM_UNAVAILABLE", LLM_UNAVAILABLE_MESSAGE
     elif isinstance(error, ConversationNotFound):
         code, message = "CONVERSATION_NOT_FOUND", CONVERSATION_NOT_FOUND_MESSAGE
+    elif isinstance(error, ConversationBusy):
+        code, message = "CONVERSATION_BUSY", CONVERSATION_BUSY_MESSAGE
     elif isinstance(error, InvalidMessage):
         code, message = "VALIDATION_ERROR", str(error)
     else:

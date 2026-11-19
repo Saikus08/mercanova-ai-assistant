@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.adapters.persistence.conversation_repository import SqlAlchemyConversationRepository
 from app.domain.agent import AgentState, ShownProduct
-from app.domain.conversation import ConversationNotFound, MessageRole
+from app.domain.conversation import ConversationBusy, ConversationNotFound, MessageRole
 
 pytestmark = pytest.mark.integration
 
@@ -117,3 +117,48 @@ def test_blocks_and_tool_calls_are_stored_on_the_assistant_message(repo) -> None
     assert (user.blocks, user.tool_calls) == (None, None)
     assert assistant.blocks == blocks
     assert assistant.tool_calls == tool_calls
+
+
+# --- turn lock -----------------------------------------------------------------------------
+
+
+@pytest.fixture
+def rival(db_session: Session) -> SqlAlchemyConversationRepository:
+    """A second caller that gives up quickly, so a held lock shows up as ConversationBusy."""
+    return SqlAlchemyConversationRepository(db_session, lock_timeout_seconds=0.3)
+
+
+def test_a_second_turn_of_the_same_conversation_waits_and_then_gives_up(repo, rival) -> None:
+    conversation_id = repo.create(SESSION)
+
+    with repo.turn_lock(conversation_id), pytest.raises(ConversationBusy):
+        with rival.turn_lock(conversation_id):
+            pytest.fail("the second turn must not run while the first holds the conversation")
+
+
+def test_the_lock_is_free_again_after_the_turn_even_if_it_failed(repo, rival) -> None:
+    conversation_id = repo.create(SESSION)
+
+    with pytest.raises(RuntimeError), repo.turn_lock(conversation_id):
+        raise RuntimeError("turn failed")
+
+    with rival.turn_lock(conversation_id):
+        pass
+
+
+def test_another_conversation_is_not_blocked(repo, rival) -> None:
+    first = repo.create(SESSION)
+    second = repo.create(SESSION)
+
+    with repo.turn_lock(first), rival.turn_lock(second):
+        pass
+
+
+def test_saving_the_turn_does_not_release_the_lock(repo, rival) -> None:
+    """The commit of append_turn (and of the cart tools) must not free the conversation."""
+    conversation_id = repo.create(SESSION)
+
+    with repo.turn_lock(conversation_id):
+        add_turn(repo, conversation_id, 1)
+        with pytest.raises(ConversationBusy), rival.turn_lock(conversation_id):
+            pass
