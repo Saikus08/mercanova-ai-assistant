@@ -128,4 +128,3 @@ def test_system_prompt_says_the_customer_confirms_the_purchase_in_the_interface(
 
     assert "confirms the purchase" in text
     assert "window is in the interface" in text
-
