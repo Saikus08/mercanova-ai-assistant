@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 120.0
     llm_temperature: float = 0.1
     llm_num_ctx: int = 8192
-    # None leaves the model default; True/False forces reasoning mode on or off.
-    llm_think: bool | None = None
+    # Reasoning mode of the model. Off by default (decision 0011): qwen3 turns it on by itself
+    # and a turn then takes about 52 s instead of 13 s. True forces it on; None leaves the
+    # model default.
+    llm_think: bool | None = False
     # Maximum model calls per chat turn before a degraded answer.
     agent_max_steps: int = 6
     # Recent messages sent to the model besides the system prompt and the state.
