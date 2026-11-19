@@ -1,0 +1,49 @@
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: var(--size-chat-width);
+  margin: 0 auto;
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.subtitle {
+  margin-top: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.examples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.examplesTitle {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.exampleButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* The message field stays at the bottom of the screen while the conversation scrolls. */
+.composer {
+  position: sticky;
+  bottom: 0;
+  padding: var(--space-4) 0;
+  border-top: var(--size-border-width) solid var(--color-border);
+  background: var(--color-background);
+}

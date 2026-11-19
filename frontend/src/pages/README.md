@@ -6,4 +6,5 @@ Las rutas se declaran en `routes/routes.tsx` y sus URL en `routes/paths.ts`. Rut
 
 - `/`: `CatalogPage`, catálogo de productos con filtros (consultar y ver los productos, RF-01). Los filtros quedan en la dirección de la página, así una búsqueda se puede recargar o compartir.
 - `/products/:productId`: `ProductDetailPage`, detalle de un producto con precio, stock por depósito y especificaciones.
+- `/chat`: `ChatPage`, el asistente de compras: conversación, tarjetas de productos recomendados con "Agregar al carrito", tabla comparativa, respuestas rápidas y el panel "Cómo lo resolví" con las herramientas usadas.
 - `/ui`: `UiShowcasePage`, muestra todos los componentes base y sus variantes para revisarlos.

@@ -13,6 +13,7 @@ export function orderPath(orderId: string): string {
 export const paths = {
   catalog: '/',
   cart: '/cart',
+  chat: '/chat',
   checkout: '/checkout',
   orders: '/orders',
   order: orderPath,

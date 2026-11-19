@@ -17,6 +17,9 @@ export function App() {
             <NavLink to={paths.catalog} end className={navLinkClass}>
               Catálogo
             </NavLink>
+            <NavLink to={paths.chat} className={navLinkClass}>
+              Asistente
+            </NavLink>
             <CartNavLink />
             <NavLink to={paths.orders} className={navLinkClass}>
               Mis compras
