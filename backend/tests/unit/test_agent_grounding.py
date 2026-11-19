@@ -14,6 +14,7 @@ from app.application.agent.grounding import (
     too_vague_search,
     ungrounded_amounts,
     ungrounded_price_filters,
+    unknown_product_ids,
 )
 from app.domain.agent import ShownProduct
 
@@ -274,3 +275,23 @@ def test_an_absurd_amount_in_the_reply_is_ungrounded_instead_of_crashing():
 
 def test_a_huge_amount_in_the_allowed_numbers_is_ignored_not_fatal():
     assert ungrounded_amounts("Cuesta USD 200.", {D(HUGE), D("200")}) == []
+
+
+# --- unknown product ids -------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("bad", ["MN-1", 5, {"a": 1}, None, [None, 3]])
+def test_unknown_product_ids_ignores_a_malformed_product_ids_argument(bad):
+    assert unknown_product_ids({"product_ids": bad}, set(), []) == []
+
+
+def test_unknown_product_ids_flags_only_ids_nobody_returned_or_typed():
+    arguments = {"product_ids": ["MN-1", "MN-2", "MN-3"]}
+
+    assert unknown_product_ids(arguments, {"MN-1"}, ["comparame el MN-2"]) == ["MN-3"]
+
+
+def test_a_typed_id_must_match_whole_not_as_part_of_another_id():
+    assert unknown_product_ids({"product_id": "MN-1"}, set(), ["¿cuánto sale el MN-10?"]) == [
+        "MN-1"
+    ]
