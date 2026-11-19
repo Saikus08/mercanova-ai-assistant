@@ -161,18 +161,25 @@ class AgentLoop:
         on_event: Callable[[dict[str, Any]], None],
     ) -> TurnResult:
         state = turn.state
-        if not state.goal:
+        answered_clarification = state.awaiting_clarification and bool(state.goal)
+        if answered_clarification:
+            # "Para jugar" alone says nothing: it completes the need that was being clarified.
+            state.set_goal(f"{state.goal}. {user_message}")
+        elif not state.goal:
             state.set_goal(user_message)
+        state.awaiting_clarification = False
         state.step = 0
         messages = build_context(state, history, user_message, self._history_messages)
 
         self._tool_phase(turn, messages, context, on_event)
         # Only a turn that searched a new need (and found products) changes the goal; adding to
         # the cart, comparing or asking a price never does.
-        if turn.last_search_cards and len(user_message.split()) >= GOAL_MIN_WORDS:
+        searched_new_need = turn.last_search_cards and len(user_message.split()) >= GOAL_MIN_WORDS
+        if searched_new_need and not answered_clarification:
             state.set_goal(user_message)
         messages.append(ChatMessage.user(FINAL_INSTRUCTION))
         answer = self._grounded_answer(turn, messages)
+        state.awaiting_clarification = answer.clarification is not None
         return self._result(turn, answer)
 
     def _tool_phase(

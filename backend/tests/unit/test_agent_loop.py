@@ -1299,3 +1299,45 @@ def test_an_id_shown_in_an_earlier_turn_or_typed_by_the_customer_is_allowed():
     run(_stock_loop(model, stock_ids), "Mirá el stock del MN-DOC-0001 y del primero", state)
 
     assert stock_ids == ["MN-1", "MN-DOC-0001"]
+
+
+# --- goal after a clarification ------------------------------------------------------------
+
+
+def test_a_clarification_turn_marks_the_state_as_awaiting_the_answer():
+    state = AgentState()
+    model = ScriptedModel(text_reply(), final(reply="¿Para qué lo usás?", clarification=ASK))
+
+    run(make_loop(model), "Quiero un monitor", state)
+
+    assert state.awaiting_clarification is True
+
+
+def test_a_short_answer_to_a_clarification_completes_the_goal():
+    state = AgentState(goal="Quiero un monitor", awaiting_clarification=True)
+    model = ScriptedModel(text_reply(), final())
+
+    run(make_loop(model), "Para jugar", state)
+
+    assert state.goal == "Quiero un monitor. Para jugar"
+    assert state.awaiting_clarification is False
+
+
+def test_a_long_answer_to_a_clarification_is_not_replaced_by_the_search_rule():
+    state = AgentState(goal="Quiero un monitor", awaiting_clarification=True)
+    model = ScriptedModel(
+        tool_reply("search_products", query="gaming monitor"), text_reply(), recommending()
+    )
+
+    run(make_loop(model), "Para jugar de noche, hasta 300 dólares", state)
+
+    assert state.goal == "Quiero un monitor. Para jugar de noche, hasta 300 dólares"
+
+
+def test_the_goal_is_not_combined_when_no_clarification_was_pending():
+    state = AgentState(goal=GOAL)
+    model = ScriptedModel(text_reply(), final())
+
+    run(make_loop(model), "Gracias", state)
+
+    assert state.goal == GOAL

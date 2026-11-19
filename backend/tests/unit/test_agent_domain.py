@@ -177,3 +177,10 @@ def test_state_from_dict_tolerates_missing_keys():
     assert AgentState.from_dict({"step": 2, "tools_used": [{"name": "a"}]}) == AgentState(
         step=2, tools_used=[ToolUse("a", False, 0)]
     )
+
+
+def test_awaiting_clarification_survives_the_state_round_trip_and_defaults_to_false():
+    state = AgentState(goal="Quiero un monitor", awaiting_clarification=True)
+
+    assert AgentState.from_dict(state.to_dict()).awaiting_clarification is True
+    assert AgentState.from_dict({"goal": "x"}).awaiting_clarification is False

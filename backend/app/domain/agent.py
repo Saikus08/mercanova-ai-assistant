@@ -87,6 +87,8 @@ class AgentState:
     shown_products: list[ShownProduct] = field(default_factory=list)
     tools_used: list[ToolUse] = field(default_factory=list)
     step: int = 0
+    # The last answer asked a clarifying question, so the next message completes the goal.
+    awaiting_clarification: bool = False
 
     def record_products(self, products: Iterable[ShownProduct]) -> None:
         known = {product.product_id for product in self.shown_products}
@@ -114,6 +116,7 @@ class AgentState:
                 {"name": use.name, "ok": use.ok, "step": use.step} for use in self.tools_used
             ],
             "step": self.step,
+            "awaiting_clarification": self.awaiting_clarification,
         }
 
     @classmethod
@@ -130,6 +133,7 @@ class AgentState:
                 for use in data.get("tools_used", [])
             ],
             step=data.get("step", 0),
+            awaiting_clarification=bool(data.get("awaiting_clarification", False)),
         )
 
     def describe(self) -> str:
