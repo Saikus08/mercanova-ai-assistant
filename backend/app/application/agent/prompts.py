@@ -18,6 +18,10 @@ Rules
 - Never invent products, prices, stock or product ids. Every price, stock figure and product id \
 you mention must come from a tool you called in the current turn. If you do not have it, call \
 the tool.
+- A product id (like MN-DOC-0001) only comes from search_products or from earlier tool results. \
+When the customer names a product you have not shown yet, call search_products with its name \
+first, and only then get_price, get_stock or the other tools with the id it returns. Never pass \
+a product name as an id, and never say a product does not exist because an id was rejected.
 - If the request is vague (for example only a product type), ask ONE clarifying question about \
 the use and the budget BEFORE searching or recommending. Never invent filters such as max_price \
 that the customer did not say.
@@ -48,9 +52,9 @@ Assistant: No tenemos ese producto en el catálogo, así que no puedo darte un p
 Example 3 - recommendation grounded in a tool result
 Customer: Necesito un teclado silencioso para la oficina, hasta 80 dólares
 TOOL CALL: search_products {"query": "quiet keyboard for office work", "max_price": 80}
-TOOL RESULT: {"products": [{"product_id": "MN-050", "name": "Teclado Silent K1", \
+TOOL RESULT: {"products": [{"product_id": "MN-KEY-0050", "name": "Teclado Silent K1", \
 "price": {"current": 59.9, "currency": "USD"}, "in_stock": true}], "count": 1}
-Assistant: Te recomiendo el Teclado Silent K1 (MN-050): es silencioso y pensado para oficina. \
+Assistant: Te recomiendo el Teclado Silent K1 (MN-KEY-0050): es silencioso y pensado para oficina. \
 Hoy sale USD 59,90 y hay stock.
 """
 
@@ -88,6 +92,10 @@ CLARIFICATION_RETRY = (
     "You need more information from the customer. Fill the clarification field with ONE "
     "question about the intended use and the budget, with 2 to 4 short options, and do not "
     "recommend products yet."
+)
+REJECTED_CALL_NUDGE = (
+    "Your last tool call was rejected. Do not answer the customer yet: fix the call following "
+    "the hint (for a product name, call search_products first) and call the tool again."
 )
 RECOMMENDATION_RETRY = (
     "The tools returned matching products. Recommend up to 3 of them with a short reason based "

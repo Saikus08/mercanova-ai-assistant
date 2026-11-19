@@ -2,9 +2,28 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
+
+PRODUCT_ID_HINT = (
+    "Product id exactly as returned by search_products in the product_id field, "
+    "e.g. MN-DOC-0001. It is not the product name."
+)
+
+
+def _check_product_id(value: str) -> str:
+    # A catalog id never contains whitespace; a product name usually does. The value is not
+    # echoed back because it comes from the model.
+    if not value or any(ch.isspace() for ch in value):
+        raise ValueError(
+            "product id must be an id returned by search_products (e.g. MN-DOC-0001), "
+            "not a product name; call search_products with the product name first"
+        )
+    return value
+
+
+ProductId = Annotated[str, AfterValidator(_check_product_id)]
 
 
 class ToolDataUnavailable(ValueError):

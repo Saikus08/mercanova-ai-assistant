@@ -5,7 +5,13 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
+from app.application.agent.tool import (
+    PRODUCT_ID_HINT,
+    ProductId,
+    Tool,
+    ToolContext,
+    ToolDataUnavailable,
+)
 from app.application.catalog import compare_products, get_product
 from app.application.ports import CatalogRepository, EmbeddingModel, SemanticSearch
 from app.application.search import search_products
@@ -50,14 +56,14 @@ class SearchProductsArgs(_Args):
 
 
 class ProductIdArgs(_Args):
-    product_id: str = Field(min_length=1, description="Product id, e.g. MN-001")
+    product_id: ProductId = Field(min_length=1, description=PRODUCT_ID_HINT)
 
 
 class CompareProductsArgs(_Args):
-    product_ids: list[str] = Field(
+    product_ids: list[ProductId] = Field(
         min_length=MIN_COMPARED_PRODUCTS,
         max_length=MAX_COMPARED_PRODUCTS,
-        description="Ids of the products to compare, between 2 and 4",
+        description=f"Between 2 and 4 ids. Each one: {PRODUCT_ID_HINT}",
     )
 
 

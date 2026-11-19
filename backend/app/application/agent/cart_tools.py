@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.application.agent.tool import Tool, ToolContext
+from app.application.agent.tool import PRODUCT_ID_HINT, ProductId, Tool, ToolContext
 from app.application.cart import add_item, view_cart
 from app.application.ports import CartRepository
 from app.domain.cart import MAX_QUANTITY_PER_LINE, Cart
@@ -34,7 +34,7 @@ class StartCheckoutArgs(_Args):
 
 
 class AddToCartArgs(_Args):
-    product_id: str = Field(min_length=1, description="Product id, e.g. MN-001")
+    product_id: ProductId = Field(min_length=1, description=PRODUCT_ID_HINT)
     quantity: int = Field(
         default=1,
         description=(

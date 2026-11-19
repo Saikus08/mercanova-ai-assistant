@@ -37,6 +37,7 @@ from app.application.agent.prompts import (
     CLARIFICATION_RETRY,
     FINAL_INSTRUCTION,
     RECOMMENDATION_RETRY,
+    REJECTED_CALL_NUDGE,
     build_context,
     tool_message,
 )
@@ -103,6 +104,9 @@ class _Turn:
     completion_tokens: int = 0
     final_calls: int = 0
     vague_blocked: bool = False
+    # The last call was refused by the dispatcher and the model has not called a tool since.
+    rejected_call: bool = False
+    nudged: bool = False
     # Query of the last search that matched nothing: the source of the not_found block.
     empty_search_query: str | None = None
     # Cards, in order, of the last successful search: the source of the recommendation fallback.
@@ -183,6 +187,12 @@ class AgentLoop:
             reply = self._call(turn, messages, self._tool_specs, None, "tools")
             messages.append(ChatMessage.assistant(reply.content, reply.tool_calls))
             if not reply.tool_calls:
+                if turn.rejected_call and not turn.nudged:
+                    # The model answered in text instead of fixing the call it was told was
+                    # wrong: one nudge, so a rejected call does not end the turn.
+                    turn.nudged = True
+                    messages.append(ChatMessage.user(REJECTED_CALL_NUDGE))
+                    continue
                 if not reply.content:
                     messages.pop()
                 return
@@ -222,6 +232,7 @@ class AgentLoop:
             result = self._dispatcher.dispatch(call.name, call.arguments, context)
             ok, payload, duration_ms = result.ok, result.payload, result.duration_ms
             valid = not result.invalid
+            turn.rejected_call = result.invalid
         turn.state.record_tool(call.name, ok)
         if ok:
             turn.facts.record(payload)

@@ -109,3 +109,10 @@ def test_final_instruction_sets_the_answer_style_rules():
         "only when the search returned nothing",
     ):
         assert fragment in text
+
+
+def test_system_prompt_says_product_ids_come_from_search_and_names_are_not_ids():
+    text = SYSTEM_PROMPT.lower()
+
+    assert "only comes from search_products" in text
+    assert "never pass a product name as an id" in text

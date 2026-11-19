@@ -46,7 +46,7 @@ flowchart TD
     B -- sí --> X1[No se ejecuta.<br/>Error: no inventes filtros]
     B -- no --> C{¿Es una búsqueda con 3 palabras o<br/>menos en total, sin números<br/>y sin filtros?}
     C -- sí --> X2[No se ejecuta.<br/>Error: hacé una pregunta primero]
-    C -- no --> D[Dispatcher: herramienta, permisos,<br/>session_id y esquema]
+    C -- no --> D[Dispatcher: herramienta, permisos,<br/>session_id y esquema<br/>el id de producto no puede ser un nombre]
     D -- inválida --> X3[Error con pista]
     D -- válida --> E[Se ejecuta y se actualiza el estado]
     X1 --> R{¿Segunda llamada inválida<br/>seguida?}
