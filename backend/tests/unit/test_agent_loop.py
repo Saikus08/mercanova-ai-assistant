@@ -131,6 +131,13 @@ def make_loop(model, fakes=None, max_steps=6, history_messages=8):
     return AgentLoop(model, ToolDispatcher(registry), registry.specs(), max_steps, history_messages)
 
 
+def state_with_shown(**fields) -> AgentState:
+    """A state where the customer was already shown Alpha and Beta, so "el primero" resolves."""
+    state = AgentState(**fields)
+    state.record_products([ShownProduct("MN-1", "Alpha"), ShownProduct("MN-2", "Beta")])
+    return state
+
+
 def run(loop, message, state=None, history=None, **kwargs) -> TurnResult:
     return loop.run_turn(state or AgentState(), history or [], message, CONTEXT, **kwargs)
 
@@ -267,7 +274,7 @@ def test_first_message_sets_the_goal():
 
 
 def test_action_message_with_many_words_keeps_the_goal():
-    state = AgentState(goal=GOAL)
+    state = state_with_shown(goal=GOAL)
     model = ScriptedModel(
         tool_reply("add_to_cart", product_id="MN-1", quantity=1), text_reply(), final()
     )
@@ -278,7 +285,7 @@ def test_action_message_with_many_words_keeps_the_goal():
 
 
 def test_compare_message_with_many_words_keeps_the_goal():
-    state = AgentState(goal=GOAL)
+    state = state_with_shown(goal=GOAL)
     model = ScriptedModel(
         tool_reply("compare_products", product_ids=["MN-1", "MN-2"]), text_reply(), final()
     )
@@ -956,7 +963,7 @@ def test_compare_only_turn_without_recommendations_needs_no_retry():
         final(reply="Alpha es más barato."),
     )
 
-    result = run(make_loop(model), "Compará el primero con el segundo")
+    result = run(make_loop(model), "Compará el primero con el segundo", state_with_shown())
 
     assert result.recommendations == []
     assert len(final_calls(model)) == 1
@@ -1144,7 +1151,7 @@ def test_no_fallback_on_a_compare_only_turn():
         final(reply="Alpha es más barato."),
     )
 
-    result = run(make_loop(model), "Compará el primero con el segundo")
+    result = run(make_loop(model), "Compará el primero con el segundo", state_with_shown())
 
     assert result.fallback_used is False
     assert result.recommendations == []
@@ -1257,3 +1264,38 @@ def test_the_nudge_is_given_only_once_per_turn():
 
     assert result.stop_reason is StopReason.ANSWER
     assert len(model.calls) == 4
+
+
+def test_an_id_no_tool_returned_is_rejected_without_dispatch_and_corrected_after_a_search():
+    stock_ids = []
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-99"),
+        tool_reply("search_products", query="Alpha headphones"),
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        recommending(reply="Hay stock del Alpha."),
+    )
+
+    result = run(_stock_loop(model, stock_ids), "¿Hay stock de los Alpha Headphones?")
+
+    assert stock_ids == ["MN-1"]
+    assert result.stop_reason is StopReason.ANSWER
+    error = model.calls[1].messages[-1]
+    assert "search_products" in error.content
+    assert "MN-99" not in error.content
+
+
+def test_an_id_shown_in_an_earlier_turn_or_typed_by_the_customer_is_allowed():
+    stock_ids = []
+    state = AgentState()
+    state.record_products([ShownProduct("MN-1", "Alpha")])
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-1"),
+        tool_reply("get_stock", product_id="MN-DOC-0001"),
+        text_reply(),
+        final(reply="Listo."),
+    )
+
+    run(_stock_loop(model, stock_ids), "Mirá el stock del MN-DOC-0001 y del primero", state)
+
+    assert stock_ids == ["MN-1", "MN-DOC-0001"]

@@ -496,3 +496,13 @@ def test_the_id_fields_tell_the_model_where_ids_come_from():
     assert "search_products" in schema["description"]
     assert "MN-001" not in schema["description"]
     assert "MN-DOC-0001" in schema["description"]
+
+
+ID_TOOLS = ["get_product_details", "get_price", "get_stock", "get_alternatives"]
+
+
+def test_tools_that_take_an_id_say_to_search_first_when_only_a_name_is_known():
+    tools = {tool.name: tool for tool in all_tools()}
+
+    for name in ID_TOOLS:
+        assert "call search_products first" in tools[name].description, name

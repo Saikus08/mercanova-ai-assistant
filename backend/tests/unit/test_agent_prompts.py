@@ -114,5 +114,10 @@ def test_final_instruction_sets_the_answer_style_rules():
 def test_system_prompt_says_product_ids_come_from_search_and_names_are_not_ids():
     text = SYSTEM_PROMPT.lower()
 
-    assert "only comes from search_products" in text
+    assert "comes from search_products" in text
+    assert "if the customer types an id, check it" in text
     assert "never pass a product name as an id" in text
+
+
+def test_final_instruction_asks_to_state_the_price_or_stock_the_customer_asked_for():
+    assert "asked for a price or stock" in FINAL_INSTRUCTION

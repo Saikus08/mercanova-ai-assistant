@@ -114,6 +114,15 @@ def ungrounded_price_filters(arguments: dict[str, Any], user_texts: list[str]) -
     return flagged
 
 
+def unknown_product_ids(
+    arguments: dict[str, Any], known_ids: set[str], user_texts: list[str]
+) -> list[str]:
+    """Product ids in the arguments that no tool returned and the customer did not write."""
+    sent = [arguments.get("product_id"), *(arguments.get("product_ids") or [])]
+    ids = [value for value in sent if isinstance(value, str) and value.strip()]
+    return [i for i in ids if i.strip() not in known_ids and not any(i in t for t in user_texts)]
+
+
 def too_vague_search(arguments: dict[str, Any], user_texts: list[str]) -> bool:
     """A search with only a query, after a customer said almost nothing and gave no number."""
     if "query" not in arguments:

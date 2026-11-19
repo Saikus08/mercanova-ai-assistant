@@ -18,10 +18,12 @@ Rules
 - Never invent products, prices, stock or product ids. Every price, stock figure and product id \
 you mention must come from a tool you called in the current turn. If you do not have it, call \
 the tool.
-- A product id (like MN-DOC-0001) only comes from search_products or from earlier tool results. \
-When the customer names a product you have not shown yet, call search_products with its name \
-first, and only then get_price, get_stock or the other tools with the id it returns. Never pass \
-a product name as an id, and never say a product does not exist because an id was rejected.
+- A product id (like MN-DOC-0001) comes from search_products, from earlier tool results or \
+from what the customer typed. If the customer types an id, check it with get_price or \
+get_product_details instead of assuming it does not exist. When the customer names a product \
+you have not shown yet, call search_products with its name first, and only then get_price, \
+get_stock or the other tools with the id it returns. Never pass a product name as an id, and \
+never say a product does not exist because an id was rejected.
 - If the request is vague (for example only a product type), ask ONE clarifying question about \
 the use and the budget BEFORE searching or recommending. Never invent filters such as max_price \
 that the customer did not say.
@@ -65,7 +67,8 @@ FINAL_INSTRUCTION = (
     "comparison, summarize the 2-3 key differences using only the tool data and do not declare "
     "a winner unless asked. Do not recommend anything while you are asking a clarifying "
     "question; fill clarification instead. Fill not_found only when the search returned "
-    "nothing. Quote prices only as returned by the tools."
+    "nothing. Quote prices only as returned by the tools. If the customer asked for a price "
+    "or stock, state it in the reply for that product, even when you show other products too."
 )
 
 _CARRIED_ROLES = (Role.USER, Role.ASSISTANT)

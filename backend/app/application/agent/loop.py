@@ -32,6 +32,7 @@ from app.application.agent.grounding import (
     too_vague_search,
     ungrounded_amounts,
     ungrounded_price_filters,
+    unknown_product_ids,
 )
 from app.application.agent.prompts import (
     CLARIFICATION_RETRY,
@@ -203,6 +204,11 @@ class AgentLoop:
                     raise _Stop(StopReason.INVALID_TOOL_CALLS)
         raise _Stop(StopReason.MAX_STEPS)
 
+    @staticmethod
+    def _known_ids(turn: _Turn) -> set[str]:
+        """Ids a tool returned this turn or earlier turns showed to the customer."""
+        return set(turn.facts.product_cards) | {p.product_id for p in turn.state.shown_products}
+
     def _run_call(
         self,
         turn: _Turn,
@@ -213,6 +219,7 @@ class AgentLoop:
     ) -> bool:
         """Run one proposed call; return False when the call itself was invalid."""
         on_event({"type": "tool_call", "name": call.name, "arguments": call.arguments})
+        turn.rejected_call = False
         invented = ungrounded_price_filters(call.arguments, turn.user_texts)
         if invented:
             ok, valid, duration_ms = False, False, 0.0
@@ -220,6 +227,14 @@ class AgentLoop:
                 "error": f"{', '.join(invented)} was not stated by the customer",
                 "hint": "Do not invent filters: ask the customer or omit it",
             }
+        elif unknown_product_ids(call.arguments, self._known_ids(turn), turn.user_texts):
+            ok, valid, duration_ms = False, False, 0.0
+            payload = {
+                "error": "The product id was not returned by any tool in this conversation",
+                "hint": "Call search_products with the product name and use the product_id "
+                "it returns; never guess an id",
+            }
+            turn.rejected_call = True
         elif call.name == SEARCH_TOOL and too_vague_search(call.arguments, turn.user_texts):
             ok, valid, duration_ms = False, False, 0.0
             turn.vague_blocked = True
