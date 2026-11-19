@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 import { responseToEvents } from '../../api/chat'
 import { ApiRequestError } from '../../api/http'
-import type { ChatStreamEvent } from '../../api/types'
+import type { ChatStreamEvent, InputMode } from '../../api/types'
 import { useCart } from '../cart/useCart'
 import { useChatApi } from './chatApiContext'
 import { chatReducer, initialChatState } from './chatState'
@@ -34,7 +34,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const busy = state.turns.some((turn) => turn.role === 'assistant' && turn.status === 'streaming')
 
   const send = useCallback(
-    (raw: string) => {
+    (raw: string, inputMode: InputMode = 'text') => {
       const text = raw.trim()
       if (!text || controller.current) return
 
@@ -44,7 +44,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
       const current = new AbortController()
       controller.current = current
-      const request = { message: text, conversation_id: conversationId.current, input_mode: 'text' as const }
+      const request = { message: text, conversation_id: conversationId.current, input_mode: inputMode }
       let received = 0
       let finished = false
 

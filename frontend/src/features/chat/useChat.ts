@@ -1,10 +1,12 @@
 import { createContext, useContext } from 'react'
+import type { InputMode } from '../../api/types'
 import type { ChatState } from './chatState'
 
 export interface ChatContextValue extends ChatState {
   /** An answer is being written: the composer waits until it ends. */
   busy: boolean
-  send: (text: string) => void
+  /** `inputMode` tells the backend whether the text was typed or transcribed from voice. */
+  send: (text: string, inputMode?: InputMode) => void
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null)
