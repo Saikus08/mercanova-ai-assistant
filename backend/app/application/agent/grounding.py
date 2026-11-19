@@ -114,6 +114,14 @@ def ungrounded_price_filters(arguments: dict[str, Any], user_texts: list[str]) -
     return flagged
 
 
+_NEGATIVE_NUMBER_RE = re.compile(r"(?<![\w-])-\d")
+
+
+def asks_for_negative_quantity(message: str) -> bool:
+    """A minus sign glued to a number, not part of an id (MN-0005) or a range (24-27)."""
+    return _NEGATIVE_NUMBER_RE.search(message) is not None
+
+
 def unknown_product_ids(
     arguments: dict[str, Any], known_ids: set[str], user_texts: list[str]
 ) -> list[str]:

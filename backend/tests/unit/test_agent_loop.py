@@ -1341,3 +1341,30 @@ def test_the_goal_is_not_combined_when_no_clarification_was_pending():
     run(make_loop(model), "Gracias", state)
 
     assert state.goal == GOAL
+
+
+# --- negative quantity ---------------------------------------------------------------------
+
+
+def test_a_negative_quantity_request_is_blocked_without_adding_to_the_cart():
+    added = []
+    fakes = Fakes()
+    cart = Tool(
+        "add_to_cart",
+        "add",
+        AddToCartArgs,
+        lambda args, context: added.append(args.quantity) or {"added": args.product_id},
+    )
+    registry = ToolRegistry([*fakes.tools(), cart])
+    model = ScriptedModel(
+        tool_reply("add_to_cart", product_id="MN-1", quantity=3),
+        text_reply(),
+        final(reply="La cantidad tiene que ser un número entero positivo. ¿Cuántas querés?"),
+    )
+    loop = AgentLoop(model, ToolDispatcher(registry), registry.specs(), 6, 8)
+
+    result = run(loop, "Agregame -3 unidades del primero", state_with_shown())
+
+    assert added == []
+    assert result.tools_used[0]["ok"] is False
+    assert "negative" in model.calls[1].messages[-1].content

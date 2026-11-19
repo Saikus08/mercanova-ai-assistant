@@ -25,6 +25,7 @@ from app.application.agent.answer import (
 from app.application.agent.dispatcher import ToolDispatcher
 from app.application.agent.grounding import (
     TurnFacts,
+    asks_for_negative_quantity,
     leaked_tool_names,
     numbers_in_text,
     result_cards,
@@ -58,6 +59,7 @@ logger = logging.getLogger(__name__)
 
 MAX_RECOMMENDATIONS = 3
 SEARCH_TOOL = "search_products"
+ADD_TO_CART_TOOL = "add_to_cart"
 GOAL_MIN_WORDS = 4
 MAX_FINAL_ATTEMPTS = 2  # the first answer and one retry
 MAX_FINAL_CALLS = 4  # per turn: answer, validity retry, grounding retry, one completeness retry
@@ -242,6 +244,13 @@ class AgentLoop:
                 "it returns; never guess an id",
             }
             turn.rejected_call = True
+        elif call.name == ADD_TO_CART_TOOL and asks_for_negative_quantity(turn.user_texts[-1]):
+            ok, valid, duration_ms = False, False, 0.0
+            payload = {
+                "error": "The customer asked for a negative quantity",
+                "hint": "Do not add anything: tell the customer the quantity must be a whole "
+                "number from 1 and ask how many units they want",
+            }
         elif call.name == SEARCH_TOOL and too_vague_search(call.arguments, turn.user_texts):
             ok, valid, duration_ms = False, False, 0.0
             turn.vague_blocked = True

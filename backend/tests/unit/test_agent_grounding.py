@@ -7,6 +7,7 @@ import pytest
 from app.application.agent.grounding import (
     TurnFacts,
     amounts_in_reply,
+    asks_for_negative_quantity,
     leaked_tool_names,
     numbers_in_payload,
     numbers_in_text,
@@ -295,3 +296,28 @@ def test_a_typed_id_must_match_whole_not_as_part_of_another_id():
     assert unknown_product_ids({"product_id": "MN-1"}, set(), ["¿cuánto sale el MN-10?"]) == [
         "MN-1"
     ]
+
+
+# --- negative quantities -------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["Agregame -3 unidades del primero", "poné -2 del segundo", "agregá -1"],
+)
+def test_a_negative_number_in_the_message_is_a_negative_quantity(message):
+    assert asks_for_negative_quantity(message) is True
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Agregame 3 unidades del primero",
+        "Agregá el MN-MON-0005, son 2",
+        "Mostrame monitores de 24-27 pulgadas",
+        "entre 100 - 200 dólares",
+        "Agregá el primero",
+    ],
+)
+def test_ids_ranges_and_plain_quantities_are_not_negative(message):
+    assert asks_for_negative_quantity(message) is False
