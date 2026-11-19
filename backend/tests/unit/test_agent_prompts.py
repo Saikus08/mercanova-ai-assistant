@@ -121,3 +121,11 @@ def test_system_prompt_says_product_ids_come_from_search_and_names_are_not_ids()
 
 def test_final_instruction_asks_to_state_the_price_or_stock_the_customer_asked_for():
     assert "asked for a price or stock" in FINAL_INSTRUCTION
+
+
+def test_system_prompt_says_the_customer_confirms_the_purchase_in_the_interface():
+    text = SYSTEM_PROMPT.lower()
+
+    assert "confirms the purchase" in text
+    assert "window is in the interface" in text
+

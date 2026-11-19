@@ -115,8 +115,9 @@ def build_cart_tools(cart: CartRepository) -> list[Tool]:
         Tool(
             "add_to_cart",
             "Use for: adding units of one product to the cart. "
-            "Use when: the customer clearly asks to add or buy a product whose id you already "
-            "know; the quantity is checked against the current stock. "
+            "Use when: the customer clearly asks to add a product whose id you already "
+            "know; the quantity is checked against the current stock. Never use it to buy or "
+            "pay for what is already in the cart: use start_checkout. "
             "Returns: what was added and the updated cart; an error with a hint when the "
             "product is unknown, not for sale or has not enough stock.",
             AddToCartArgs,
@@ -125,7 +126,8 @@ def build_cart_tools(cart: CartRepository) -> list[Tool]:
         Tool(
             "start_checkout",
             "Use for: preparing the purchase window of the interface from the current cart. "
-            "Use when: the customer wants to pay or finish the purchase. It never creates an "
+            "Use when: the customer wants to pay, finish or buy what is already in the cart, for "
+            "example 'comprámelo'; do not add the product again. It never creates an "
             "order, never asks for personal data and never confirms a purchase: the customer "
             "enters their details and confirms in the interface. "
             "Returns: ready flag, the cart, the lines whose quantity exceeds the current stock "

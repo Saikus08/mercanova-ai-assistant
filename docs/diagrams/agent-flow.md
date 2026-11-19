@@ -36,6 +36,8 @@ sequenceDiagram
     L-->>U: texto + tarjetas armadas con datos de las herramientas
 ```
 
+Si la respuesta anterior fue una pregunta de aclaración (`awaiting_clarification`), el mensaje siguiente se suma al objetivo en vez de reemplazarlo.
+
 Si el modelo no responde, o se alcanza el máximo de pasos, el ciclo devuelve un mensaje fijo en español y marca el resultado como degradado. El ciclo no deja una excepción en manos del usuario.
 
 ## 2. Controles antes de ejecutar una herramienta
@@ -46,7 +48,9 @@ flowchart TD
     B -- sí --> X1[No se ejecuta.<br/>Error: no inventes filtros]
     B -- no --> C{¿Es una búsqueda con 3 palabras o<br/>menos en total, sin números<br/>y sin filtros?}
     C -- sí --> X2[No se ejecuta.<br/>Error: hacé una pregunta primero]
-    C -- no --> C2{¿Usa un id de producto que ninguna<br/>herramienta devolvió ni el cliente escribió?}
+    C -- no --> C3{¿Es add_to_cart y el cliente<br/>escribió una cantidad negativa?}
+    C3 -- sí --> X5[No se ejecuta.<br/>Error: pedí una cantidad entera positiva]
+    C3 -- no --> C2{¿Usa un id de producto que ninguna<br/>herramienta devolvió ni el cliente escribió?}
     C2 -- sí --> X4[No se ejecuta.<br/>Error: buscá el producto con search_products]
     C2 -- no --> D[Dispatcher: herramienta, permisos,<br/>session_id y esquema<br/>el id de producto no puede ser un nombre]
     D -- inválida --> X3[Error con pista]
@@ -55,6 +59,7 @@ flowchart TD
     X2 --> R
     X3 --> R
     X4 --> R
+    X5 --> R
     R -- no --> S[El modelo puede corregir una vez]
     R -- sí --> T[Se corta el turno:<br/>respuesta degradada]
 ```
@@ -90,6 +95,7 @@ classDiagram
             shown_products
             tools_used
             step
+            awaiting_clarification
             describe()
         }
         class ChatMessage {
