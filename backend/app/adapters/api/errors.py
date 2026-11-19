@@ -27,6 +27,7 @@ from app.domain.purchase import (
     OrderNotPending,
     PriceChanged,
 )
+from app.domain.speech import AudioUnreadable, InvalidAudio, SpeechToTextUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,31 @@ def _llm_unavailable(_: Request, error: Exception) -> JSONResponse:
     )
 
 
+def _audio_unreadable(_: Request, error: Exception) -> JSONResponse:
+    return error_response(
+        422,
+        "AUDIO_UNREADABLE",
+        "No pudimos entender el audio. Probá grabarlo de nuevo o escribí tu consulta.",
+    )
+
+
+def _invalid_audio(_: Request, error: Exception) -> JSONResponse:
+    return error_response(
+        400,
+        "VALIDATION_ERROR",
+        "El audio no es válido: tiene que ser webm, ogg o wav, de hasta 60 segundos y 10 MB.",
+        {"errors": [{"field": "audio", "message": str(error)}]},
+    )
+
+
+def _stt_unavailable(_: Request, error: Exception) -> JSONResponse:
+    return error_response(
+        503,
+        "STT_UNAVAILABLE",
+        "La consulta por voz no está disponible por ahora. Podés escribir tu consulta.",
+    )
+
+
 def _conversation_not_found(_: Request, error: Exception) -> JSONResponse:
     return error_response(404, "CONVERSATION_NOT_FOUND", "La conversación no existe.")
 
@@ -212,6 +238,9 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(PriceChanged, _price_changed)
     app.add_exception_handler(InvalidCheckout, _invalid_checkout)
     app.add_exception_handler(LLMUnavailable, _llm_unavailable)
+    app.add_exception_handler(AudioUnreadable, _audio_unreadable)
+    app.add_exception_handler(InvalidAudio, _invalid_audio)
+    app.add_exception_handler(SpeechToTextUnavailable, _stt_unavailable)
     app.add_exception_handler(ConversationNotFound, _conversation_not_found)
     app.add_exception_handler(InvalidMessage, _invalid_message)
     app.add_exception_handler(MissingSession, _missing_session)

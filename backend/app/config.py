@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     agent_max_steps: int = 6
     # Recent messages sent to the model besides the system prompt and the state.
     agent_history_messages: int = 8
+    # Speech-to-text (faster-whisper): model size and spoken language. "small" transcribes a
+    # 3 s Spanish query in about 1.5 s on CPU; "base" is faster but less accurate.
+    stt_model: str = "small"
+    stt_language: str = "es"
     # Course Excel, mounted read-only from ./data by docker compose.
     dataset_path: str = "/data/MercaNova_dataset_obligatorio_2.xlsx"
 

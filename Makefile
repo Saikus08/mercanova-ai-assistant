@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate pull-models seed embed test test-backend test-frontend lint eval
+.PHONY: up down logs migrate pull-models seed embed test test-backend test-frontend lint eval test-stt
 
 up:            ## Start all services
 	docker compose up -d --build
@@ -32,6 +32,9 @@ test-frontend:
 
 eval:          ## Run the use cases against the real Ollama model (read only; not part of CI)
 	docker compose exec -e RUN_EVAL=1 backend pytest -m eval -s
+
+test-stt:      ## Transcribe the sample audio with the real faster-whisper model (not part of CI)
+	docker compose exec -e RUN_STT=1 backend pytest -m stt
 
 lint:          ## Same checks as the CI lint steps
 	docker compose exec backend ruff check .

@@ -55,13 +55,18 @@ services:
       - EMBEDDING_TIMEOUT_SECONDS
       - EMBEDDING_BATCH_SIZE
       - SEARCH_MIN_SIMILARITY
+      - STT_MODEL
+      - STT_LANGUAGE
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
       # Course dataset (not versioned): copy the Excel into ./data before `make seed`.
       - ./data:/data:ro
+      # faster-whisper models, downloaded on the first transcription and kept across rebuilds.
+      - whisper_models:/root/.cache/huggingface
 
 volumes:
   db_data:
   ollama_data:
+  whisper_models:
