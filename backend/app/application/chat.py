@@ -65,7 +65,7 @@ class ChatService:
         lock: AbstractContextManager[None] = (
             nullcontext()
             if conversation_id is None
-            else self._conversations.turn_lock(conversation_id)
+            else self._conversations.turn_lock(conversation_id, session_id)
         )
         with lock:
             return self._turn(session_id, text, conversation_id, on_event, on_conversation)

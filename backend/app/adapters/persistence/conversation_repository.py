@@ -47,13 +47,14 @@ class SqlAlchemyConversationRepository:
         )
 
     @contextmanager
-    def turn_lock(self, conversation_id: str) -> Iterator[None]:
+    def turn_lock(self, conversation_id: str, session_id: str) -> Iterator[None]:
         """Hold a Postgres advisory lock on the conversation for the whole turn.
 
         The lock lives on its own connection. A row lock or a lock on the session's connection
         would be released by the commits that the cart tools and ``append_turn`` make in the
         middle of a turn. Advisory locks are session-level, so only the explicit unlock frees it.
         """
+        self._owned(conversation_id, session_id)  # a foreign id must not even queue for the lock
         key = {"key": f"conversation-turn:{conversation_id}"}
         engine = self._session.get_bind().engine
         with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
@@ -65,7 +66,13 @@ class SqlAlchemyConversationRepository:
             try:
                 yield
             finally:
-                connection.execute(_UNLOCK, key)
+                try:
+                    connection.execute(_UNLOCK, key)
+                except Exception:
+                    # A failed unlock would hand the pool a connection that still holds the
+                    # lock: dropping the connection makes the server release it.
+                    connection.invalidate()
+                    raise
 
     def create(self, session_id: str) -> str:
         conversation = Conversation(session_id=session_id)

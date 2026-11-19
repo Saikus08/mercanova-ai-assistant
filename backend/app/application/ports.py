@@ -145,8 +145,10 @@ class ConversationRepository(Protocol):
         """Start a new conversation for the session and return its id."""
         ...
 
-    def turn_lock(self, conversation_id: str) -> AbstractContextManager[None]:
+    def turn_lock(self, conversation_id: str, session_id: str) -> AbstractContextManager[None]:
         """Hold the conversation for one turn, from reading its state to saving the turn.
+
+        Raises ConversationNotFound, before waiting, when the conversation is not the session's.
 
         A second caller waits and raises ConversationBusy when the wait runs out, so two turns
         of one conversation never read the same state and overwrite each other.

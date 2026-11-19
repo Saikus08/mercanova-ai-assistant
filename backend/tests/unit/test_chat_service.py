@@ -42,7 +42,7 @@ class FakeConversations:
         self.locks: dict[str, threading.Lock] = {}
 
     @contextmanager
-    def turn_lock(self, conversation_id: str) -> Iterator[None]:
+    def turn_lock(self, conversation_id: str, session_id: str) -> Iterator[None]:
         lock = self.locks.setdefault(conversation_id, threading.Lock())
         with lock:
             self.log.append("lock")
@@ -345,7 +345,7 @@ def test_a_busy_conversation_propagates_without_running_the_turn() -> None:
     cid = conversations.create(SESSION)
 
     @contextmanager
-    def busy(conversation_id: str) -> Iterator[None]:
+    def busy(conversation_id: str, session_id: str) -> Iterator[None]:
         raise ConversationBusy(conversation_id)
         yield
 

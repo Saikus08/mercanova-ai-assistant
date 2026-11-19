@@ -481,7 +481,7 @@ def busy_conversation(client, use_model, db_session, monkeypatch):
     use_model(ScriptedModel(*plain_turn("Primera")))
     conversation_id = post(client, "Uno").json()["conversation_id"]
     use_model(ScriptedModel(*plain_turn("Segunda")))
-    holder = SqlAlchemyConversationRepository(db_session).turn_lock(conversation_id)
+    holder = SqlAlchemyConversationRepository(db_session).turn_lock(conversation_id, "session-a")
     holder.__enter__()
     try:
         yield conversation_id

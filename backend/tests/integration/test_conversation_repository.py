@@ -131,18 +131,18 @@ def rival(db_session: Session) -> SqlAlchemyConversationRepository:
 def test_a_second_turn_of_the_same_conversation_waits_and_then_gives_up(repo, rival) -> None:
     conversation_id = repo.create(SESSION)
 
-    with repo.turn_lock(conversation_id), pytest.raises(ConversationBusy):
-        with rival.turn_lock(conversation_id):
+    with repo.turn_lock(conversation_id, SESSION), pytest.raises(ConversationBusy):
+        with rival.turn_lock(conversation_id, SESSION):
             pytest.fail("the second turn must not run while the first holds the conversation")
 
 
 def test_the_lock_is_free_again_after_the_turn_even_if_it_failed(repo, rival) -> None:
     conversation_id = repo.create(SESSION)
 
-    with pytest.raises(RuntimeError), repo.turn_lock(conversation_id):
+    with pytest.raises(RuntimeError), repo.turn_lock(conversation_id, SESSION):
         raise RuntimeError("turn failed")
 
-    with rival.turn_lock(conversation_id):
+    with rival.turn_lock(conversation_id, SESSION):
         pass
 
 
@@ -150,7 +150,7 @@ def test_another_conversation_is_not_blocked(repo, rival) -> None:
     first = repo.create(SESSION)
     second = repo.create(SESSION)
 
-    with repo.turn_lock(first), rival.turn_lock(second):
+    with repo.turn_lock(first, SESSION), rival.turn_lock(second, SESSION):
         pass
 
 
@@ -158,7 +158,17 @@ def test_saving_the_turn_does_not_release_the_lock(repo, rival) -> None:
     """The commit of append_turn (and of the cart tools) must not free the conversation."""
     conversation_id = repo.create(SESSION)
 
-    with repo.turn_lock(conversation_id):
+    with repo.turn_lock(conversation_id, SESSION):
         add_turn(repo, conversation_id, 1)
-        with pytest.raises(ConversationBusy), rival.turn_lock(conversation_id):
+        with pytest.raises(ConversationBusy), rival.turn_lock(conversation_id, SESSION):
             pass
+
+
+def test_a_conversation_of_another_session_is_refused_without_waiting_for_its_lock(
+    repo, rival
+) -> None:
+    conversation_id = repo.create(SESSION)
+
+    with repo.turn_lock(conversation_id, SESSION), pytest.raises(ConversationNotFound):
+        with rival.turn_lock(conversation_id, OTHER):
+            pytest.fail("a foreign session must never get past the ownership check")
