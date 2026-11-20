@@ -114,6 +114,25 @@ def ungrounded_price_filters(arguments: dict[str, Any], user_texts: list[str]) -
     return flagged
 
 
+def unknown_product_ids(
+    arguments: dict[str, Any], known_ids: set[str], user_texts: list[str]
+) -> list[str]:
+    """Product ids in the arguments that no tool returned and the customer did not write.
+
+    Malformed arguments (a number, a plain string) are skipped: the dispatcher rejects them.
+    """
+    many = arguments.get("product_ids")
+    sent = [arguments.get("product_id"), *(many if isinstance(many, list) else [])]
+    ids = [value.strip() for value in sent if isinstance(value, str) and value.strip()]
+    return [i for i in ids if i not in known_ids and not _typed_by_customer(i, user_texts)]
+
+
+def _typed_by_customer(product_id: str, user_texts: list[str]) -> bool:
+    """The id appears as a whole token, not inside a longer id (MN-1 is not in MN-10)."""
+    pattern = rf"(?<![A-Za-z0-9-]){re.escape(product_id)}(?![A-Za-z0-9-])"
+    return any(re.search(pattern, text, re.IGNORECASE) for text in user_texts)
+
+
 def too_vague_search(arguments: dict[str, Any], user_texts: list[str]) -> bool:
     """A search with only a query, after a customer said almost nothing and gave no number."""
     if "query" not in arguments:

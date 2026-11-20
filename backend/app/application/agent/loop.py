@@ -32,11 +32,13 @@ from app.application.agent.grounding import (
     too_vague_search,
     ungrounded_amounts,
     ungrounded_price_filters,
+    unknown_product_ids,
 )
 from app.application.agent.prompts import (
     CLARIFICATION_RETRY,
     FINAL_INSTRUCTION,
     RECOMMENDATION_RETRY,
+    REJECTED_CALL_NUDGE,
     build_context,
     tool_message,
 )
@@ -103,6 +105,9 @@ class _Turn:
     completion_tokens: int = 0
     final_calls: int = 0
     vague_blocked: bool = False
+    # The last call was refused by the dispatcher and the model has not called a tool since.
+    rejected_call: bool = False
+    nudged: bool = False
     # Query of the last search that matched nothing: the source of the not_found block.
     empty_search_query: str | None = None
     # Cards, in order, of the last successful search: the source of the recommendation fallback.
@@ -183,6 +188,12 @@ class AgentLoop:
             reply = self._call(turn, messages, self._tool_specs, None, "tools")
             messages.append(ChatMessage.assistant(reply.content, reply.tool_calls))
             if not reply.tool_calls:
+                if turn.rejected_call and not turn.nudged:
+                    # The model answered in text instead of fixing the call it was told was
+                    # wrong: one nudge, so a rejected call does not end the turn.
+                    turn.nudged = True
+                    messages.append(ChatMessage.user(REJECTED_CALL_NUDGE))
+                    continue
                 if not reply.content:
                     messages.pop()
                 return
@@ -192,6 +203,11 @@ class AgentLoop:
                 if consecutive_invalid >= 2:
                     raise _Stop(StopReason.INVALID_TOOL_CALLS)
         raise _Stop(StopReason.MAX_STEPS)
+
+    @staticmethod
+    def _known_ids(turn: _Turn) -> set[str]:
+        """Ids a tool returned this turn or earlier turns showed to the customer."""
+        return set(turn.facts.product_cards) | {p.product_id for p in turn.state.shown_products}
 
     def _run_call(
         self,
@@ -203,6 +219,7 @@ class AgentLoop:
     ) -> bool:
         """Run one proposed call; return False when the call itself was invalid."""
         on_event({"type": "tool_call", "name": call.name, "arguments": call.arguments})
+        turn.rejected_call = False
         invented = ungrounded_price_filters(call.arguments, turn.user_texts)
         if invented:
             ok, valid, duration_ms = False, False, 0.0
@@ -210,6 +227,14 @@ class AgentLoop:
                 "error": f"{', '.join(invented)} was not stated by the customer",
                 "hint": "Do not invent filters: ask the customer or omit it",
             }
+        elif unknown_product_ids(call.arguments, self._known_ids(turn), turn.user_texts):
+            ok, valid, duration_ms = False, False, 0.0
+            payload = {
+                "error": "The product id was not returned by any tool in this conversation",
+                "hint": "Call search_products with the product name and use the product_id "
+                "it returns; never guess an id",
+            }
+            turn.rejected_call = True
         elif call.name == SEARCH_TOOL and too_vague_search(call.arguments, turn.user_texts):
             ok, valid, duration_ms = False, False, 0.0
             turn.vague_blocked = True
@@ -222,6 +247,7 @@ class AgentLoop:
             result = self._dispatcher.dispatch(call.name, call.arguments, context)
             ok, payload, duration_ms = result.ok, result.payload, result.duration_ms
             valid = not result.invalid
+            turn.rejected_call = result.invalid
         turn.state.record_tool(call.name, ok)
         if ok:
             turn.facts.record(payload)

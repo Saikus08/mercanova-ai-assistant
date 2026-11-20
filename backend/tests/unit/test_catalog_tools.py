@@ -5,8 +5,14 @@ import re
 from decimal import Decimal
 
 import pytest
+from pydantic import ValidationError
 
-from app.application.agent.catalog_tools import build_catalog_tools
+from app.application.agent.cart_tools import AddToCartArgs
+from app.application.agent.catalog_tools import (
+    CompareProductsArgs,
+    ProductIdArgs,
+    build_catalog_tools,
+)
 from app.application.agent.dispatcher import ToolDispatcher
 from app.application.agent.permissions import PERMISSIONS, Permission
 from app.application.agent.registry import ToolRegistry
@@ -453,3 +459,50 @@ def test_alternatives_return_an_empty_list_with_a_note_when_there_are_none():
     assert result.payload["alternatives"] == []
     assert result.payload["count"] == 0
     assert "do not invent" in result.payload["note"]
+
+
+# --- product id format (BUG-03) -------------------------------------------------------------
+
+PRODUCT_NAMES = ["Solace Dock Pro 7", "Quanta Vision 27 Full HD IPS", " Solace Dock "]
+
+
+@pytest.mark.parametrize("name", PRODUCT_NAMES)
+def test_a_product_name_is_not_accepted_as_a_product_id(name):
+    for build in (
+        lambda: ProductIdArgs(product_id=name),
+        lambda: AddToCartArgs(product_id=name),
+        lambda: CompareProductsArgs(product_ids=["MN-DOC-0001", name]),
+    ):
+        with pytest.raises(ValidationError, match="search_products"):
+            build()
+
+
+def test_the_id_error_does_not_echo_what_the_model_sent():
+    with pytest.raises(ValidationError) as error:
+        ProductIdArgs(product_id="Solace Dock Pro 7")
+
+    reported = error.value.errors(include_input=False, include_url=False)
+    assert "Solace" not in str(reported)
+
+
+@pytest.mark.parametrize("product_id", ["MN-DOC-0001", "MN-MON-0005", "MN-001"])
+def test_a_catalog_id_is_accepted(product_id):
+    assert ProductIdArgs(product_id=product_id).product_id == product_id
+
+
+def test_the_id_fields_tell_the_model_where_ids_come_from():
+    schema = ProductIdArgs.model_json_schema()["properties"]["product_id"]
+
+    assert "search_products" in schema["description"]
+    assert "MN-001" not in schema["description"]
+    assert "MN-DOC-0001" in schema["description"]
+
+
+ID_TOOLS = ["get_product_details", "get_price", "get_stock", "get_alternatives"]
+
+
+def test_tools_that_take_an_id_say_to_search_first_when_only_a_name_is_known():
+    tools = {tool.name: tool for tool in all_tools()}
+
+    for name in ID_TOOLS:
+        assert "call search_products first" in tools[name].description, name

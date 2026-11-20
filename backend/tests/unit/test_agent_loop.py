@@ -14,6 +14,7 @@ from app.application.agent.answer import (
 from app.application.agent.cart_tools import AddToCartArgs, build_cart_tools
 from app.application.agent.catalog_tools import (
     CompareProductsArgs,
+    ProductIdArgs,
     SearchProductsArgs,
     build_catalog_tools,
 )
@@ -128,6 +129,13 @@ def make_loop(model, fakes=None, max_steps=6, history_messages=8):
     fakes = fakes or Fakes()
     registry = ToolRegistry(fakes.tools())
     return AgentLoop(model, ToolDispatcher(registry), registry.specs(), max_steps, history_messages)
+
+
+def state_with_shown(**fields) -> AgentState:
+    """A state where the customer was already shown Alpha and Beta, so "el primero" resolves."""
+    state = AgentState(**fields)
+    state.record_products([ShownProduct("MN-1", "Alpha"), ShownProduct("MN-2", "Beta")])
+    return state
 
 
 def run(loop, message, state=None, history=None, **kwargs) -> TurnResult:
@@ -266,7 +274,7 @@ def test_first_message_sets_the_goal():
 
 
 def test_action_message_with_many_words_keeps_the_goal():
-    state = AgentState(goal=GOAL)
+    state = state_with_shown(goal=GOAL)
     model = ScriptedModel(
         tool_reply("add_to_cart", product_id="MN-1", quantity=1), text_reply(), final()
     )
@@ -277,7 +285,7 @@ def test_action_message_with_many_words_keeps_the_goal():
 
 
 def test_compare_message_with_many_words_keeps_the_goal():
-    state = AgentState(goal=GOAL)
+    state = state_with_shown(goal=GOAL)
     model = ScriptedModel(
         tool_reply("compare_products", product_ids=["MN-1", "MN-2"]), text_reply(), final()
     )
@@ -315,6 +323,7 @@ def test_failed_search_does_not_replace_the_goal():
     state = AgentState(goal=GOAL)
     model = ScriptedModel(
         tool_reply("search_products", bogus="x"),
+        text_reply(),
         text_reply(),
         final(reply="No pude buscar."),
     )
@@ -428,6 +437,7 @@ def test_a_valid_call_between_invalid_ones_resets_the_retry():
         tool_reply("nope"),
         tool_reply("search_products", query="headphones"),
         tool_reply("nope"),
+        text_reply(),
         text_reply(),
         recommending(),
     )
@@ -857,7 +867,7 @@ def test_tools_used_carries_the_dispatcher_payload():
 
 
 def test_failed_tools_carry_the_error_payload_as_result():
-    model = ScriptedModel(tool_reply("nope"), text_reply(), final())
+    model = ScriptedModel(tool_reply("nope"), text_reply(), text_reply(), final())
 
     result = run(make_loop(model), "Busco auriculares para trabajar")
 
@@ -953,7 +963,7 @@ def test_compare_only_turn_without_recommendations_needs_no_retry():
         final(reply="Alpha es más barato."),
     )
 
-    result = run(make_loop(model), "Compará el primero con el segundo")
+    result = run(make_loop(model), "Compará el primero con el segundo", state_with_shown())
 
     assert result.recommendations == []
     assert len(final_calls(model)) == 1
@@ -1141,7 +1151,7 @@ def test_no_fallback_on_a_compare_only_turn():
         final(reply="Alpha es más barato."),
     )
 
-    result = run(make_loop(model), "Compará el primero con el segundo")
+    result = run(make_loop(model), "Compará el primero con el segundo", state_with_shown())
 
     assert result.fallback_used is False
     assert result.recommendations == []
@@ -1184,3 +1194,108 @@ def test_a_huge_number_in_the_conversation_does_not_crash_any_turn():
 
     assert result.stop_reason is StopReason.ANSWER
     assert result.degraded is False
+
+
+def test_a_product_name_sent_as_id_is_corrected_with_a_search_and_not_reported_missing():
+    stock_ids = []
+
+    def stock(args, context):
+        stock_ids.append(args.product_id)
+        return {"product_id": args.product_id, "available_qty": 5, "in_stock": True}
+
+    fakes = Fakes()
+    registry = ToolRegistry([*fakes.tools(), Tool("get_stock", "stock", ProductIdArgs, stock)])
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="Alpha Headphones"),
+        tool_reply("search_products", query="Alpha headphones"),
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        recommending(reply="Hay stock del Alpha."),
+    )
+    loop = AgentLoop(model, ToolDispatcher(registry), registry.specs(), 6, 8)
+
+    result = run(loop, "¿Hay stock de los Alpha Headphones?")
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert stock_ids == ["MN-1"]
+    error = model.calls[1].messages[-1]
+    assert error.role is Role.TOOL
+    assert "search_products" in error.content
+
+
+def _stock_loop(model, stock_ids):
+    def stock(args, context):
+        stock_ids.append(args.product_id)
+        return {"product_id": args.product_id, "available_qty": 5, "in_stock": True}
+
+    fakes = Fakes()
+    registry = ToolRegistry([*fakes.tools(), Tool("get_stock", "stock", ProductIdArgs, stock)])
+    return AgentLoop(model, ToolDispatcher(registry), registry.specs(), 6, 8)
+
+
+def test_a_text_reply_right_after_a_rejected_call_gets_one_nudge_to_fix_the_call():
+    stock_ids = []
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="Alpha Headphones"),
+        text_reply("Primero busco el producto para obtener su id."),
+        tool_reply("search_products", query="Alpha headphones"),
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        recommending(reply="Hay stock del Alpha."),
+    )
+
+    result = run(_stock_loop(model, stock_ids), "¿Hay stock de los Alpha Headphones?")
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert stock_ids == ["MN-1"]
+    assert model.calls[2].messages[-1].role is Role.USER
+    assert "rejected" in model.calls[2].messages[-1].content
+
+
+def test_the_nudge_is_given_only_once_per_turn():
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="Alpha Headphones"),
+        text_reply("Primero busco el producto."),
+        text_reply("Ahora lo busco."),
+        final(reply="No pude consultarlo."),
+    )
+
+    result = run(_stock_loop(model, []), "¿Hay stock de los Alpha Headphones?")
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert len(model.calls) == 4
+
+
+def test_an_id_no_tool_returned_is_rejected_without_dispatch_and_corrected_after_a_search():
+    stock_ids = []
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-99"),
+        tool_reply("search_products", query="Alpha headphones"),
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        recommending(reply="Hay stock del Alpha."),
+    )
+
+    result = run(_stock_loop(model, stock_ids), "¿Hay stock de los Alpha Headphones?")
+
+    assert stock_ids == ["MN-1"]
+    assert result.stop_reason is StopReason.ANSWER
+    error = model.calls[1].messages[-1]
+    assert "search_products" in error.content
+    assert "MN-99" not in error.content
+
+
+def test_an_id_shown_in_an_earlier_turn_or_typed_by_the_customer_is_allowed():
+    stock_ids = []
+    state = AgentState()
+    state.record_products([ShownProduct("MN-1", "Alpha")])
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-1"),
+        tool_reply("get_stock", product_id="MN-DOC-0001"),
+        text_reply(),
+        final(reply="Listo."),
+    )
+
+    run(_stock_loop(model, stock_ids), "Mirá el stock del MN-DOC-0001 y del primero", state)
+
+    assert stock_ids == ["MN-1", "MN-DOC-0001"]

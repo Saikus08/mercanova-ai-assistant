@@ -5,7 +5,13 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
+from app.application.agent.tool import (
+    PRODUCT_ID_HINT,
+    ProductId,
+    Tool,
+    ToolContext,
+    ToolDataUnavailable,
+)
 from app.application.catalog import compare_products, get_product
 from app.application.ports import CatalogRepository, EmbeddingModel, SemanticSearch
 from app.application.search import search_products
@@ -50,14 +56,14 @@ class SearchProductsArgs(_Args):
 
 
 class ProductIdArgs(_Args):
-    product_id: str = Field(min_length=1, description="Product id, e.g. MN-001")
+    product_id: ProductId = Field(min_length=1, description=PRODUCT_ID_HINT)
 
 
 class CompareProductsArgs(_Args):
-    product_ids: list[str] = Field(
+    product_ids: list[ProductId] = Field(
         min_length=MIN_COMPARED_PRODUCTS,
         max_length=MAX_COMPARED_PRODUCTS,
-        description="Ids of the products to compare, between 2 and 4",
+        description=f"Between 2 and 4 ids. Each one: {PRODUCT_ID_HINT}",
     )
 
 
@@ -246,7 +252,7 @@ def build_catalog_tools(
             "get_product_details",
             "Use for: the full description of one product. "
             "Use when: the customer asks about features, specifications, warranty or "
-            "suitability of a product whose id you already know. "
+            "suitability of a product. If you only know its name, call search_products first. "
             "Returns: static content, specifications, warehouses, and current price and stock.",
             ProductIdArgs,
             details,
@@ -254,8 +260,9 @@ def build_catalog_tools(
         Tool(
             "get_price",
             "Use for: the current price of one product. "
-            "Use when: the customer asks how much a product costs; never answer a price from "
-            "memory or earlier messages. "
+            "Use when: the customer asks how much a product costs or asks you to confirm a price; "
+            "never answer a price from memory or earlier messages. "
+            "If you only know the product name, call search_products first. "
             "Returns: current price, list price, discount percent and currency.",
             ProductIdArgs,
             price,
@@ -265,6 +272,7 @@ def build_catalog_tools(
             "Use for: the current availability of one product. "
             "Use when: the customer asks whether a product is available or how many units "
             "there are; never answer stock from memory or earlier messages. "
+            "If you only know the product name, call search_products first. "
             "Returns: available quantity, in-stock flag and quantity per warehouse.",
             ProductIdArgs,
             stock,
@@ -283,7 +291,7 @@ def build_catalog_tools(
             "get_alternatives",
             "Use for: similar products that can replace one product. "
             "Use when: the product is out of stock, too expensive or the customer wants other "
-            "options. "
+            "options. If you only know the product name, call search_products first. "
             "Returns: up to 5 alternatives, strongest relation first, with current price and "
             "stock; an empty list with a note when none are registered.",
             ProductIdArgs,
