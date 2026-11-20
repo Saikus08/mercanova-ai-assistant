@@ -166,6 +166,7 @@ def build_chat_service(
         registry.specs(),
         settings.agent_max_steps,
         settings.agent_history_messages,
+        settings.agent_turn_timeout_seconds,
     )
     return ChatService(
         loop,

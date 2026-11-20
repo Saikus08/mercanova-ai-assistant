@@ -24,3 +24,11 @@ def test_default_chat_model_is_qwen3_8b(monkeypatch):
 @pytest.mark.parametrize(("value", "expected"), [("true", True), ("false", False)])
 def test_reasoning_mode_can_be_set_from_the_environment(monkeypatch, value, expected):
     assert make_settings(monkeypatch, LLM_THINK=value).llm_think is expected
+
+
+def test_turn_time_budget_defaults_to_90_seconds_and_can_be_overridden(monkeypatch):
+    assert make_settings(monkeypatch).agent_turn_timeout_seconds == 90.0
+    assert (
+        make_settings(monkeypatch, AGENT_TURN_TIMEOUT_SECONDS="45").agent_turn_timeout_seconds
+        == 45.0
+    )

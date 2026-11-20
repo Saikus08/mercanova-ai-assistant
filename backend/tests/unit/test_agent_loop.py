@@ -19,7 +19,7 @@ from app.application.agent.catalog_tools import (
     build_catalog_tools,
 )
 from app.application.agent.dispatcher import ToolDispatcher
-from app.application.agent.loop import AgentLoop
+from app.application.agent.loop import DEGRADED_REPLIES, AgentLoop
 from app.application.agent.prompts import (
     CLARIFICATION_RETRY,
     FINAL_INSTRUCTION,
@@ -1368,3 +1368,89 @@ def test_a_negative_quantity_request_is_blocked_without_adding_to_the_cart():
     assert added == []
     assert result.tools_used[0]["ok"] is False
     assert "negative" in model.calls[1].messages[-1].content
+
+
+# --- time budget of one turn ---------------------------------------------------------------
+
+
+class FakeClock:
+    """A clock that only moves when the test says so."""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+class SlowModel(ScriptedModel):
+    """Every model call takes `seconds` on the fake clock."""
+
+    def __init__(self, clock: FakeClock, seconds: float, *replies):
+        super().__init__(*replies)
+        self._clock = clock
+        self._seconds = seconds
+
+    def chat(self, messages, tools, response_schema=None):
+        reply = super().chat(messages, tools, response_schema)
+        self._clock.now += self._seconds
+        return reply
+
+
+def timed_loop(model, clock, timeout):
+    fakes = Fakes()
+    registry = ToolRegistry(fakes.tools())
+    return AgentLoop(
+        model,
+        ToolDispatcher(registry),
+        registry.specs(),
+        6,
+        8,
+        turn_timeout_seconds=timeout,
+        clock=clock,
+    )
+
+
+def test_a_turn_over_its_time_budget_stops_before_the_next_model_call():
+    clock = FakeClock()
+    model = SlowModel(
+        clock, 40.0, tool_reply("search_products", query="headphones"), text_reply(), final()
+    )
+
+    result = run(timed_loop(model, clock, 30.0), "Busco auriculares para trabajar")
+
+    assert result.stop_reason is StopReason.TIMEOUT
+    assert result.degraded is True
+    assert result.reply == DEGRADED_REPLIES[StopReason.TIMEOUT]
+    assert len(model.calls) == 1
+
+
+def test_a_turn_inside_its_budget_is_not_cut():
+    clock = FakeClock()
+    model = SlowModel(
+        clock, 1.0, tool_reply("search_products", query="headphones"), text_reply(), recommending()
+    )
+
+    result = run(timed_loop(model, clock, 30.0), "Busco auriculares para trabajar")
+
+    assert result.stop_reason is StopReason.ANSWER
+
+
+def test_the_budget_also_covers_the_final_answer_phase():
+    clock = FakeClock()
+    model = SlowModel(clock, 20.0, text_reply(), text_reply("not json"), final())
+
+    result = run(timed_loop(model, clock, 30.0), "Hola, ¿qué tal?")
+
+    assert result.stop_reason is StopReason.TIMEOUT
+    assert len(model.calls) == 2
+
+
+def test_the_time_budget_is_logged_as_a_degraded_turn(caplog):
+    clock = FakeClock()
+    model = SlowModel(clock, 40.0, text_reply(), final())
+
+    with caplog.at_level(logging.WARNING):
+        run(timed_loop(model, clock, 30.0), "Hola, ¿qué tal?")
+
+    assert "reason=timeout" in caplog.text

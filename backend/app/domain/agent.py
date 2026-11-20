@@ -64,6 +64,7 @@ class StopReason(StrEnum):
     INVALID_TOOL_CALLS = "invalid_tool_calls"
     UNGROUNDED_ANSWER = "ungrounded_answer"
     INVALID_ANSWER = "invalid_answer"  # final reply not valid JSON for the schema after a retry
+    TIMEOUT = "timeout"  # the turn used up its time budget
 
 
 @dataclass(frozen=True)

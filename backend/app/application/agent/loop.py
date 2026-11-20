@@ -58,6 +58,7 @@ from app.domain.agent import (
 logger = logging.getLogger(__name__)
 
 MAX_RECOMMENDATIONS = 3
+DEFAULT_TURN_TIMEOUT_SECONDS = 90.0
 SEARCH_TOOL = "search_products"
 ADD_TO_CART_TOOL = "add_to_cart"
 GOAL_MIN_WORDS = 4
@@ -74,6 +75,10 @@ DEGRADED_REPLIES = {
     StopReason.MAX_STEPS: (
         "No pude terminar de resolver tu consulta en este turno. ¿Podés darme más detalles o "
         "reformularla?"
+    ),
+    StopReason.TIMEOUT: (
+        "Tardé más de lo esperado en responderte. ¿Querés que lo intente de nuevo o preferís "
+        "reformular la consulta?"
     ),
     StopReason.INVALID_TOOL_CALLS: (
         "No pude armar una respuesta confiable. ¿Podés reformular tu consulta?"
@@ -101,6 +106,7 @@ class _Turn:
     trace_id: str
     state: AgentState
     user_texts: list[str]
+    started_at: float
     facts: TurnFacts = field(default_factory=TurnFacts)
     tools_used: list[dict[str, Any]] = field(default_factory=list)
     prompt_tokens: int = 0
@@ -124,12 +130,16 @@ class AgentLoop:
         tool_specs: list[ToolSpec],
         max_steps: int,
         history_messages: int,
+        turn_timeout_seconds: float = DEFAULT_TURN_TIMEOUT_SECONDS,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._model = model
         self._dispatcher = dispatcher
         self._tool_specs = tool_specs
         self._max_steps = max_steps
         self._history_messages = history_messages
+        self._turn_timeout_seconds = turn_timeout_seconds
+        self._clock = clock
 
     def run_turn(
         self,
@@ -141,7 +151,7 @@ class AgentLoop:
         trace_id: str | None = None,
     ) -> TurnResult:
         user_texts = [m.content for m in history if m.role is Role.USER] + [user_message]
-        turn = _Turn(trace_id or uuid.uuid4().hex, state, user_texts)
+        turn = _Turn(trace_id or uuid.uuid4().hex, state, user_texts, self._clock())
         try:
             return self._run(turn, history, user_message, context, on_event or _ignore)
         except _Stop as stop:
@@ -399,6 +409,8 @@ class AgentLoop:
         schema: dict[str, Any] | None,
         phase: str,
     ) -> ModelReply:
+        if self._clock() - turn.started_at > self._turn_timeout_seconds:
+            raise _Stop(StopReason.TIMEOUT)
         started = time.perf_counter()
         try:
             reply = self._model.chat(messages, tools, schema)

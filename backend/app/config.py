@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     llm_think: bool | None = False
     # Maximum model calls per chat turn before a degraded answer.
     agent_max_steps: int = 6
+    # Time budget of one chat turn, checked before each model call. A call already running is
+    # not interrupted: it ends by its own LLM_TIMEOUT_SECONDS.
+    agent_turn_timeout_seconds: float = 90.0
     # Recent messages sent to the model besides the system prompt and the state.
     agent_history_messages: int = 8
     # Speech-to-text (faster-whisper): model size and spoken language. "small" transcribes a
