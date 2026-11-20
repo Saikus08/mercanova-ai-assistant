@@ -20,12 +20,12 @@ Un asistente basado en un modelo no se puede probar solo con aserciones exactas 
 2. **Trayectoria: la secuencia de herramientas.** Con el modelo simulado se comprueba qué herramientas se llaman, en qué orden y con qué argumentos (por ejemplo, que una consulta vaga no ejecute una búsqueda, o que un id inventado se rechace). En la evaluación real, la métrica de herramientas puntúa si eligió la herramienta correcta y si mandó llamadas inválidas.
 3. **Resultado: la respuesta final.** Se comprueba que la respuesta sea válida, que cada precio y cada identificador salgan de una herramienta del turno (grounding), que no mencione nombres internos y que cumpla lo que pedía el caso (la métrica de tarea).
 
-Los 20 casos están en `backend/tests/eval/golden_cases.py` y cubren los diez casos de uso del producto y otros de ambigüedad, adversarios (inyección de instrucciones, datos personales), bordes y varios turnos. Cada corrida se guarda en `backend/tests/eval/results/` y la comparación entre modelos, con la decisión del modelo elegido, está en [model-comparison.md](model-comparison.md).
+Los 20 casos están en `backend/tests/eval/golden_cases.py` y cubren los casos de uso del producto ([use-cases.md](use-cases.md)) y otros de ambigüedad, adversarios (inyección de instrucciones, datos personales), bordes y varios turnos. Cada corrida se guarda en `backend/tests/eval/results/` y la comparación entre modelos, con la decisión del modelo elegido, está en [model-comparison.md](model-comparison.md).
 
 ## Evidencia
 
 - **CI:** cada pull request corre backend (ruff y pytest) y frontend (lint, tipos y Vitest).
-- **Evaluación con `qwen3:8b` sin razonamiento** (2 corridas por caso, 20/11/2026): todos los casos pasan en tarea. En herramientas, C10 y C13 sacan menos (el modelo intenta un `max_price` inventado, que el software bloquea, y en C13 manda el nombre del producto como id en la primera llamada). En grounding, C18 saca 0,67 porque la respuesta cita el id de un producto mostrado en un turno anterior.
+- **Evaluación con `qwen3:8b` sin razonamiento.** Barrido de los 20 casos con 2 corridas cada uno (19/11/2026): todos pasan en tarea. Los casos C04, C07, C13 y C18 se repitieron el 20/11/2026 después de los últimos cambios del asistente, con el mismo resultado. En herramientas, C10 y C13 sacan menos (el modelo intenta un `max_price` inventado, que el software bloquea, y en C13 manda el nombre del producto como id en la primera llamada). En grounding, C18 saca 0,67 porque la respuesta cita el id de un producto mostrado en un turno anterior.
 
 ## Qué no se cubre, y límites
 
