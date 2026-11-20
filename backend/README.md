@@ -94,7 +94,9 @@ Con el Excel actual de la cátedra no se rechaza ninguna fila. Un rechazo se ve 
 WARNING Rejected Products row 4: rating: Input should be less than or equal to 5 (got '7.5')
 ```
 
-**Se puede correr más de una vez.** Cada fila se inserta o, si ya existe, se actualiza (`INSERT ... ON CONFLICT DO UPDATE` sobre la clave de cada tabla). Correrlo dos veces con el mismo archivo deja los mismos datos. Si el Excel cambia, se actualizan las filas que ya estaban. Las filas que se borren del Excel no se borran de la base.
+**Se puede correr más de una vez.** Cada fila se inserta o, si ya existe, se actualiza (`INSERT ... ON CONFLICT DO UPDATE` sobre la clave de cada tabla). Correrlo dos veces con el mismo archivo deja los mismos datos. Si el Excel cambia, se actualizan las filas que ya estaban (menos las cantidades de stock, ver abajo). Las filas que se borren del Excel no se borran de la base.
+
+**El stock no se pisa.** Cada compra confirmada descuenta unidades del inventario. Si el seed volviera a escribir las cantidades del Excel, se perderían esos descuentos. Por eso, cuando una fila de stock ya existe, el seed la deja como está y solo agrega las que faltan. Para volver a las cantidades del Excel hay que pedirlo de forma explícita: `docker compose exec backend python -m app.scripts.seed --reset-stock`. Eso borra el efecto de las compras ya confirmadas sobre el stock.
 
 **Todo o nada.** La carga completa corre en una sola transacción. Si algo inesperado falla a mitad de camino, por ejemplo la base rechaza una fila, no queda nada cargado a medias.
 

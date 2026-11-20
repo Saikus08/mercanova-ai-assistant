@@ -8,10 +8,17 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import get_settings
 
+# Seconds to wait for the database to accept a connection before giving up.
+CONNECT_TIMEOUT_SECONDS = 5
+
 
 @lru_cache
 def get_engine() -> Engine:
-    return create_engine(get_settings().database_url, pool_pre_ping=True)
+    return create_engine(
+        get_settings().database_url,
+        pool_pre_ping=True,
+        connect_args={"connect_timeout": CONNECT_TIMEOUT_SECONDS},
+    )
 
 
 @lru_cache

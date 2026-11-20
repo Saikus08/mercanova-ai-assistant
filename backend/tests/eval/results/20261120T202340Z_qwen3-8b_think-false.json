@@ -1,0 +1,17 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 2,
+  "label": null,
+  "started_at": "2026-11-20T20:23:40.833481+00:00",
+  "cases": [
+    {
+      "case_id": "C04",
+      "kind": "use_case",
+      "hard": false,
+      "runs": []
+    }
+  ]
+}

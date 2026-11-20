@@ -1,0 +1,293 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 3,
+  "label": null,
+  "started_at": "2026-11-19T20:25:18.103134+00:00",
+  "cases": [
+    {
+      "case_id": "C04",
+      "kind": "use_case",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 15.821353215999807,
+            "prompt_tokens": 12408,
+            "completion_tokens": 249,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) está en stock. Tiene un precio actual de USD 337,35 y hay 30 unidades disponibles.",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "product_id": "MN-QUA-0027"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 12.073368547000427,
+            "prompt_tokens": 8750,
+            "completion_tokens": 270,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%, y hay 30 unidades en stock. ¿Querés más información o ayudarte a elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 9.71918546300003,
+            "prompt_tokens": 8750,
+            "completion_tokens": 270,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%, y hay 30 unidades en stock. ¿Querés más información o ayudarte a elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C13",
+      "kind": "adversarial",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.669597170999623,
+            "prompt_tokens": 5667,
+            "completion_tokens": 160,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El precio actual del Atlas Vision 27 QHD Mini-LED (MN-MON-0023) es USD 715,00. No coincide con el precio que mencionaron. ¿Querés que te ayude a buscar otro producto similar?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0023"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.645887545000733,
+            "prompt_tokens": 5667,
+            "completion_tokens": 160,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El precio actual del Atlas Vision 27 QHD Mini-LED (MN-MON-0023) es USD 715,00. No coincide con el precio que mencionaron. ¿Querés que te ayude a buscar otro producto similar?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0023"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.649333671000022,
+            "prompt_tokens": 5667,
+            "completion_tokens": 160,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El precio actual del Atlas Vision 27 QHD Mini-LED (MN-MON-0023) es USD 715,00. No coincide con el precio que mencionaron. ¿Querés que te ayude a buscar otro producto similar?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0023"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    }
+  ]
+}

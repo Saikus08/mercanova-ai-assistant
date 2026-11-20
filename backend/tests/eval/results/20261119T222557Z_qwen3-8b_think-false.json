@@ -1,0 +1,576 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 3,
+  "label": null,
+  "started_at": "2026-11-19T22:25:57.738632+00:00",
+  "cases": [
+    {
+      "case_id": "C07",
+      "kind": "use_case",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C07",
+          "kind": "use_case",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called:start_checkout": true,
+            "does_not_claim_purchase_done": true,
+            "reply_includes_any:confirm|ventana|interfaz|botón": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 12.398174755999207,
+            "prompt_tokens": 6159,
+            "completion_tokens": 150,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El producto está en el carrito y el proceso de compra está listo. Ahora debés ingresar tus datos y presionar el botón de confirmar en la interfaz. No puedo confirmar ni cancelar las compras desde aquí. ¡Espero tu confirmación!",
+          "tools": [
+            {
+              "name": "start_checkout",
+              "arguments": {},
+              "ok": true
+            }
+          ],
+          "cart_after": {
+            "MN-MON-0005": 1
+          }
+        },
+        {
+          "case_id": "C07",
+          "kind": "use_case",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called:start_checkout": true,
+            "does_not_claim_purchase_done": true,
+            "reply_includes_any:confirm|ventana|interfaz|botón": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.62877067000045,
+            "prompt_tokens": 6146,
+            "completion_tokens": 124,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El carrito está listo. Ahora debés ingresar tus datos y presionar el botón de confirmar en la interfaz. No puedo confirmar ni cancelar las compras, solo preparo el proceso.",
+          "tools": [
+            {
+              "name": "start_checkout",
+              "arguments": {},
+              "ok": true
+            }
+          ],
+          "cart_after": {
+            "MN-MON-0005": 1
+          }
+        },
+        {
+          "case_id": "C07",
+          "kind": "use_case",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called:start_checkout": true,
+            "does_not_claim_purchase_done": true,
+            "reply_includes_any:confirm|ventana|interfaz|botón": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 9.325144421000005,
+            "prompt_tokens": 6159,
+            "completion_tokens": 150,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El producto está en el carrito y el proceso de compra está listo. Ahora debés ingresar tus datos y presionar el botón de confirmar en la interfaz. No puedo confirmar ni cancelar las compras desde aquí. ¡Espero tu confirmación!",
+          "tools": [
+            {
+              "name": "start_checkout",
+              "arguments": {},
+              "ok": true
+            }
+          ],
+          "cart_after": {
+            "MN-MON-0005": 1
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "C08",
+      "kind": "ambiguous",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C08",
+          "kind": "ambiguous",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 0.3333333333333333,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "asks_for_clarification": true,
+            "no_recommendations": false,
+            "no_successful_search": false,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 21.984709509999448,
+            "prompt_tokens": 8068,
+            "completion_tokens": 537,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¡Claro! Aquí tienes algunas opciones para jugar:\n\n1. **PixelForge Mouse Precision 62 (MN-MSE-0018)**: Es un mouse ambidiestro con sensor de 26000 DPI y 8 botones programables. Hoy sale USD 85,01 y hay stock.\n\n2. **Solace Mouse Precision 51 (MN-MSE-0016)**: También es un mouse ambidiestro, pero con sensor de 16000 DPI y 11 botones programables. Hoy sale USD 106,62 y también hay stock.\n\n¿Querés más información sobre alguno de estos productos o necesitás ayuda para elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "gaming product",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C08",
+          "kind": "ambiguous",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 0.3333333333333333,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "asks_for_clarification": true,
+            "no_recommendations": false,
+            "no_successful_search": false,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 16.71555904900015,
+            "prompt_tokens": 8068,
+            "completion_tokens": 537,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¡Claro! Aquí tienes algunas opciones para jugar:\n\n1. **PixelForge Mouse Precision 62 (MN-MSE-0018)**: Es un mouse ambidiestro con sensor de 26000 DPI y 8 botones programables. Hoy sale USD 85,01 y hay stock.\n\n2. **Solace Mouse Precision 51 (MN-MSE-0016)**: También es un mouse ambidiestro, pero con sensor de 16000 DPI y 11 botones programables. Hoy sale USD 106,62 y también hay stock.\n\n¿Querés más información sobre alguno de estos productos o necesitás ayuda para elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "in_stock_only": true,
+                "query": "gaming product"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C08",
+          "kind": "ambiguous",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 0.3333333333333333,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "asks_for_clarification": true,
+            "no_recommendations": false,
+            "no_successful_search": false,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 16.982920507998642,
+            "prompt_tokens": 8062,
+            "completion_tokens": 538,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¡Claro! Aquí tienes algunas opciones para jugar:\n\n1. **PixelForge Mouse Precision 62 (MN-MSE-0018)**: Es un mouse ambidiestro con sensor de 26000 DPI y 8 botones programables. Hoy sale USD 85,01 y hay stock.\n\n2. **Solace Mouse Precision 51 (MN-MSE-0016)**: También es ambidiestro, pero con sensor de 16000 DPI y 11 botones programables. Hoy sale USD 106,62 y también hay stock.\n\n¿Querés más información sobre alguno de estos productos o necesitás ayuda para elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "gaming product",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C10",
+      "kind": "ambiguous",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C10",
+          "kind": "ambiguous",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "asks_for_clarification": true,
+            "no_recommendations": true,
+            "arg_absent:search_products:max_price": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 7.245456586000728,
+            "prompt_tokens": 5725,
+            "completion_tokens": 98,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Claro. ¿Podrías decirme cuánto estás dispuesto a gastar?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "affordable product",
+                "max_price": 50
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C10",
+          "kind": "ambiguous",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "asks_for_clarification": true,
+            "no_recommendations": true,
+            "arg_absent:search_products:max_price": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 7.202848045000792,
+            "prompt_tokens": 5725,
+            "completion_tokens": 98,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Claro. ¿Podrías decirme cuánto estás dispuesto a gastar?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "affordable product",
+                "max_price": 50
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C10",
+          "kind": "ambiguous",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "asks_for_clarification": true,
+            "no_recommendations": true,
+            "arg_absent:search_products:max_price": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 7.178882960999545,
+            "prompt_tokens": 5725,
+            "completion_tokens": 98,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Claro. ¿Podrías decirme cuánto estás dispuesto a gastar?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "affordable product",
+                "max_price": 50
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C18",
+      "kind": "edge",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.782621712000036,
+            "prompt_tokens": 6093,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "product_id": "MN-MON-0005",
+                "quantity": 3
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.54233683700113,
+            "prompt_tokens": 6093,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "product_id": "MN-MON-0005",
+                "quantity": 3
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.535782462000498,
+            "prompt_tokens": 6093,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "product_id": "MN-MON-0005",
+                "quantity": 3
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    }
+  ]
+}

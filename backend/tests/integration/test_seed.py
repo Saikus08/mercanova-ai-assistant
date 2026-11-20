@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 from openpyxl import Workbook
-from sqlalchemy import Engine, func, select
+from sqlalchemy import Engine, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -233,3 +233,67 @@ def test_seed_loads_nothing_when_the_database_rejects_a_row(
     assert counts["brands"] == 1  # only the pre-existing brand
     assert counts["products"] == 1
     assert counts["categories"] == counts["warehouses"] == 0
+
+
+# --- stock of orders already confirmed ------------------------------------------------------
+
+
+def _sell_one_unit_of_p1(session_factory: sessionmaker[Session]) -> None:
+    """What confirming an order does to the stock of P1 in WH-A (on hand and available drop)."""
+    with session_factory() as session, session.begin():
+        session.execute(
+            update(Inventory)
+            .where(Inventory.product_id == "P1", Inventory.warehouse_id == "WH-A")
+            .values(
+                on_hand_qty=Inventory.on_hand_qty - 1,
+                available_qty=Inventory.available_qty - 1,
+            )
+        )
+
+
+def _p1_stock(session_factory: sessionmaker[Session]) -> tuple[int, int]:
+    with session_factory() as session:
+        row = session.get(Inventory, ("P1", "WH-A"))
+        assert row is not None
+        return row.on_hand_qty, row.available_qty
+
+
+def test_seed_keeps_the_stock_left_by_confirmed_orders(
+    tmp_path: Path, session_factory: sessionmaker[Session]
+) -> None:
+    workbook = _write_workbook(tmp_path / "dataset.xlsx", _sheets())
+    run_seed(workbook, session_factory)
+    _sell_one_unit_of_p1(session_factory)
+
+    run_seed(workbook, session_factory)
+
+    assert _p1_stock(session_factory) == (9, 6)
+
+
+def test_seed_with_reset_stock_restores_the_quantities_of_the_dataset(
+    tmp_path: Path, session_factory: sessionmaker[Session]
+) -> None:
+    workbook = _write_workbook(tmp_path / "dataset.xlsx", _sheets())
+    run_seed(workbook, session_factory)
+    _sell_one_unit_of_p1(session_factory)
+
+    run_seed(workbook, session_factory, reset_stock=True)
+
+    assert _p1_stock(session_factory) == (10, 7)
+
+
+def test_seed_loads_the_stock_of_new_rows_without_touching_the_existing_ones(
+    tmp_path: Path, session_factory: sessionmaker[Session]
+) -> None:
+    run_seed(_write_workbook(tmp_path / "v1.xlsx", _sheets()), session_factory)
+    _sell_one_unit_of_p1(session_factory)
+    v2 = _sheets()
+    v2["Inventory"].append(
+        {"product_id": "P2", "warehouse_id": "WH-B", "on_hand_qty": 5, "reserved_qty": 0,
+         "available_qty": 5, "inventory_status": "In stock"}
+    )
+
+    run_seed(_write_workbook(tmp_path / "v2.xlsx", v2), session_factory)
+
+    assert _p1_stock(session_factory) == (9, 6)
+    assert _counts(session_factory)["inventory"] == 4

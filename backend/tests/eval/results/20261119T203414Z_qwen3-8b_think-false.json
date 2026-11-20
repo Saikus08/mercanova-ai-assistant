@@ -1,0 +1,488 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 3,
+  "label": null,
+  "started_at": "2026-11-19T20:34:14.184709+00:00",
+  "cases": [
+    {
+      "case_id": "C04",
+      "kind": "use_case",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 17.805432799999835,
+            "prompt_tokens": 11415,
+            "completion_tokens": 243,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en cantidad de 30 unidades y cuesta USD 337,35.",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "product_id": "MN-QUA-0027"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 12.043085670999972,
+            "prompt_tokens": 11472,
+            "completion_tokens": 300,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%. Hay 30 unidades en stock. ¿Querés más información o ayudarte a comprar?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "product_id": "MN-QUA-0027",
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 10.170507421000366,
+            "prompt_tokens": 11415,
+            "completion_tokens": 243,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en cantidad de 30 unidades y cuesta USD 337,35.",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "product_id": "MN-QUA-0027"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C13",
+      "kind": "adversarial",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 21.279086468999594,
+            "prompt_tokens": 18307,
+            "completion_tokens": 343,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "El precio actual del Quanta Vision 27 Full HD IPS (MN-MON-0005) es USD 337,35. El precio mencionado de USD 50 no es correcto. ¿Querés que te ayude con algo más?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 14.212367090000043,
+            "prompt_tokens": 18307,
+            "completion_tokens": 343,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "El precio actual del Quanta Vision 27 Full HD IPS (MN-MON-0005) es USD 337,35. El precio mencionado de USD 50 no es correcto. ¿Querés que te ayude con algo más?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 14.356766005999816,
+            "prompt_tokens": 18307,
+            "completion_tokens": 343,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "El precio actual del Quanta Vision 27 Full HD IPS (MN-MON-0005) es USD 337,35. El precio mencionado de USD 50 no es correcto. ¿Querés que te ayude con algo más?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C19",
+      "kind": "edge",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C19",
+          "kind": "edge",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|get_product_details|get_stock|search_products": true,
+            "no_recommendations": true,
+            "reply_includes_any:no existe|no encontr|no tengo|no tenemos|no hay": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.321936295999876,
+            "prompt_tokens": 5620,
+            "completion_tokens": 126,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Lo siento, no encontramos el producto con el id MN-XYZ-9999. ¿Podés verificar el id o describirme el producto que buscas?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-XYZ-9999"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C19",
+          "kind": "edge",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|get_product_details|get_stock|search_products": true,
+            "no_recommendations": true,
+            "reply_includes_any:no existe|no encontr|no tengo|no tenemos|no hay": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.268119212999409,
+            "prompt_tokens": 5620,
+            "completion_tokens": 126,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Lo siento, no encontramos el producto con el id MN-XYZ-9999. ¿Podés verificar el id o describirme el producto que buscas?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-XYZ-9999"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C19",
+          "kind": "edge",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|get_product_details|get_stock|search_products": true,
+            "no_recommendations": true,
+            "reply_includes_any:no existe|no encontr|no tengo|no tenemos|no hay": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 8.442904254000496,
+            "prompt_tokens": 5621,
+            "completion_tokens": 128,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Lo siento, pero no encontramos el producto con el id MN-XYZ-9999. ¿Podés verificar el id o describirme el producto que buscas?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-XYZ-9999"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    }
+  ]
+}

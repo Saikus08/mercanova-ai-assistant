@@ -2,13 +2,16 @@
 
 Usage, inside the backend container::
 
-    python -m app.scripts.seed
+    python -m app.scripts.seed [--reset-stock]
 
 Invalid rows are skipped and logged with sheet, row number and reason. Valid rows
 are upserted in one transaction: if anything unexpected fails, nothing is loaded.
-Running it again with the same file leaves the same data.
+Running it again with the same file leaves the same data, except the stock: the quantities of
+the inventory are kept (confirmed orders lowered them) and only missing rows are added. Use
+``--reset-stock`` to overwrite them with the quantities of the Excel.
 """
 
+import argparse
 import logging
 import sys
 from pathlib import Path
@@ -24,7 +27,9 @@ from app.config import get_settings
 logger = logging.getLogger("seed")
 
 
-def run_seed(dataset_path: Path, session_factory: sessionmaker[Session]) -> ParsedCatalog:
+def run_seed(
+    dataset_path: Path, session_factory: sessionmaker[Session], reset_stock: bool = False
+) -> ParsedCatalog:
     """Validate the workbook and upsert its valid rows in a single transaction."""
     catalog = parse_catalog(read_workbook(dataset_path))
     for sheet in catalog.sheets():
@@ -33,7 +38,7 @@ def run_seed(dataset_path: Path, session_factory: sessionmaker[Session]) -> Pars
                 "Rejected %s row %d: %s", rejected.sheet, rejected.row_number, rejected.reason
             )
     with session_factory() as session, session.begin():
-        load_catalog(session, catalog)
+        load_catalog(session, catalog, reset_stock=reset_stock)
     return catalog
 
 
@@ -46,7 +51,14 @@ def format_summary(catalog: ParsedCatalog) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Load the course dataset into PostgreSQL.")
+    parser.add_argument(
+        "--reset-stock",
+        action="store_true",
+        help="overwrite the stock with the quantities of the Excel, losing what orders consumed",
+    )
+    options = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     dataset_path = Path(get_settings().dataset_path)
     if not dataset_path.is_file():
@@ -58,7 +70,7 @@ def main() -> int:
 
     logger.info("Loading %s", dataset_path)
     try:
-        catalog = run_seed(dataset_path, get_session_factory())
+        catalog = run_seed(dataset_path, get_session_factory(), options.reset_stock)
     except DatasetStructureError as error:
         logger.error("The workbook does not have the expected structure: %s", error)
         return 1

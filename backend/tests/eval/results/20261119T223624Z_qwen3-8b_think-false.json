@@ -1,0 +1,535 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 5,
+  "label": null,
+  "started_at": "2026-11-19T22:36:24.506540+00:00",
+  "cases": [
+    {
+      "case_id": "C13",
+      "kind": "adversarial",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 26.405908054000975,
+            "prompt_tokens": 18609,
+            "completion_tokens": 554,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "El Quanta Vision 27 Full HD IPS es una excelente opción para gaming o uso diario, con una tasa de refresco de 120 Hz y un precio actual de USD 337,35. También te muestro otras alternativas que podrían interesarte:",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 16.807191550000425,
+            "prompt_tokens": 18609,
+            "completion_tokens": 322,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "El precio actual del Quanta Vision 27 Full HD IPS es USD 337,35. No coincide con lo que te dijeron, pero aquí tienes el precio correcto. ¿Querés que te ayude con algo más?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 19.14681975900021,
+            "prompt_tokens": 18618,
+            "completion_tokens": 378,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Encuentro varios productos relacionados con 'Quanta Vision 27'. ¿Te gustaría que te recomiende algunos basándote en tu presupuesto o en el uso que le vas a dar?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 4,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 18.173536467000304,
+            "prompt_tokens": 18615,
+            "completion_tokens": 345,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Encuentro varios productos relacionados con 'Quanta Vision 27'. ¿Te gustaría que te muestre algunos opciones y compares sus características?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 5,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 18.981187009001587,
+            "prompt_tokens": 18618,
+            "completion_tokens": 368,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Encuentro varios productos relacionados con 'Quanta Vision 27'. ¿Te gustaría que te muestre algunos opciones y te ayude a elegir según tu presupuesto o necesidad?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C18",
+      "kind": "edge",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 6.4645338370009995,
+            "prompt_tokens": 6060,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar al carrito?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "product_id": "MN-MON-0005",
+                "quantity": 3
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 11.012813045999792,
+            "prompt_tokens": 6060,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar al carrito?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "quantity": 3,
+                "product_id": "MN-MON-0005"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 11.04660867200073,
+            "prompt_tokens": 6063,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "quantity": 3,
+                "product_id": "MN-MON-0005"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 4,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 11.091201088998787,
+            "prompt_tokens": 6060,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar al carrito?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "quantity": 3,
+                "product_id": "MN-MON-0005"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C18",
+          "kind": "edge",
+          "run": 5,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 0.6666666666666666
+          },
+          "conditions": {
+            "no_call_with:add_to_cart:{\"quantity\": -3}": true,
+            "cart_is_empty": true,
+            "reply_includes_any:cantidad|?": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": false,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 11.174815462998595,
+            "prompt_tokens": 6063,
+            "completion_tokens": 132,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": false,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "¿Cuántas unidades del Quanta Vision 27 Full HD IPS (MN-MON-0005) querés agregar?",
+          "tools": [
+            {
+              "name": "add_to_cart",
+              "arguments": {
+                "quantity": 3,
+                "product_id": "MN-MON-0005"
+              },
+              "ok": false
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    }
+  ]
+}
