@@ -49,6 +49,7 @@ services:
       - LLM_TEMPERATURE
       - LLM_NUM_CTX
       - LLM_THINK
+      - LOG_LEVEL
       - AGENT_MAX_STEPS
       - AGENT_TURN_TIMEOUT_SECONDS
       - AGENT_HISTORY_MESSAGES
