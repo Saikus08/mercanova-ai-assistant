@@ -18,6 +18,7 @@ from pydantic import ValidationError
 from app.application.agent.answer import (
     FALLBACK_CLARIFICATION,
     FINAL_ANSWER_SCHEMA,
+    MAX_RECOMMENDATIONS,
     Clarification,
     FinalAnswer,
     TurnResult,
@@ -57,11 +58,11 @@ from app.domain.agent import (
 
 logger = logging.getLogger(__name__)
 
-MAX_RECOMMENDATIONS = 3
 DEFAULT_TURN_TIMEOUT_SECONDS = 90.0
 SEARCH_TOOL = "search_products"
 ADD_TO_CART_TOOL = "add_to_cart"
 GOAL_MIN_WORDS = 4
+MAX_CONSECUTIVE_INVALID_CALLS = 2  # the second invalid call in a row ends the turn
 MAX_FINAL_ATTEMPTS = 2  # the first answer and one retry
 MAX_FINAL_CALLS = 4  # per turn: answer, validity retry, grounding retry, one completeness retry
 # A turn whose successful tools are all of these needs no recommendations in the answer.
@@ -219,7 +220,7 @@ class AgentLoop:
             for call in reply.tool_calls:
                 valid = self._run_call(turn, call, context, on_event, messages)
                 consecutive_invalid = 0 if valid else consecutive_invalid + 1
-                if consecutive_invalid >= 2:
+                if consecutive_invalid >= MAX_CONSECUTIVE_INVALID_CALLS:
                     raise _Stop(StopReason.INVALID_TOOL_CALLS)
         raise _Stop(StopReason.MAX_STEPS)
 
@@ -280,7 +281,7 @@ class AgentLoop:
             turn.state.record_products(shown_products(payload))
             if call.name == SEARCH_TOOL:
                 turn.last_search_cards = result_cards(payload)
-            if call.name == "search_products" and not payload.get("products"):
+            if call.name == SEARCH_TOOL and not payload.get("products"):
                 turn.empty_search_query = str(call.arguments.get("query", "")).strip() or None
         turn.tools_used.append(
             {
