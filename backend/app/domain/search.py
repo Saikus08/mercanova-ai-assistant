@@ -8,6 +8,10 @@ MAX_TOP_K = 5
 MIN_TOP_K = 1
 
 
+class InvalidSearchQuery(Exception):
+    """The search text is blank, so there is nothing to look for."""
+
+
 class SearchUnavailable(Exception):
     """The embedding model or the search backend cannot answer right now."""
 

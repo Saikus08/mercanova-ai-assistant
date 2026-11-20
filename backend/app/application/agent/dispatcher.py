@@ -19,7 +19,7 @@ from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
 from app.domain.cart import InsufficientStock, InvalidQuantity, ItemNotInCart, ProductInactive
 from app.domain.catalog import InvalidComparison, ProductNotFound
 from app.domain.purchase import CartEmpty
-from app.domain.search import SearchUnavailable
+from app.domain.search import InvalidSearchQuery, SearchUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ class ToolDispatcher:
             return False, _failure(
                 str(error), "Tell the user this information is not available; do not guess it"
             )
-        except ValueError as error:
+        except InvalidSearchQuery as error:
             return False, _failure(str(error), "Fix the arguments and call the tool again")
         except Exception:
             logger.exception("Tool %s failed unexpectedly", tool.name)

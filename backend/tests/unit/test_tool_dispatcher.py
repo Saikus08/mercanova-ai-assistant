@@ -13,7 +13,7 @@ from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
 from app.domain.cart import InsufficientStock, InvalidQuantity, ItemNotInCart, ProductInactive
 from app.domain.catalog import InvalidComparison, ProductNotFound
 from app.domain.purchase import CartEmpty
-from app.domain.search import SearchUnavailable
+from app.domain.search import InvalidSearchQuery, SearchUnavailable
 
 CONTEXT = ToolContext(session_id="session-1")
 
@@ -356,11 +356,19 @@ def test_dispatch_maps_a_missing_data_error_to_a_hint_to_tell_the_user():
     assert "not available" in result.payload["hint"]
 
 
-def test_dispatch_maps_value_error_to_an_argument_fix_hint():
-    result = run_failing(ValueError("The search query must not be blank"))
+def test_dispatch_maps_a_blank_search_query_to_an_argument_fix_hint():
+    result = run_failing(InvalidSearchQuery("The search query must not be blank"))
 
     assert result.payload["error"] == "The search query must not be blank"
     assert "Fix the arguments" in result.payload["hint"]
+
+
+def test_dispatch_does_not_blame_the_arguments_for_a_stray_value_error(caplog):
+    with caplog.at_level(logging.ERROR):
+        result = run_failing(ValueError("bug deep inside a tool"))
+
+    assert result.payload["error"] == "Unexpected tool failure"
+    assert "Fix the arguments" not in result.payload["hint"]
 
 
 def test_dispatch_hides_unexpected_failures_and_logs_without_arguments(caplog):
