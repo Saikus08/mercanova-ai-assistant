@@ -38,7 +38,7 @@ sequenceDiagram
 
 Si la respuesta anterior fue una pregunta de aclaración (`awaiting_clarification`), el mensaje siguiente se suma al objetivo en vez de reemplazarlo.
 
-Si el modelo no responde, o se alcanza el máximo de pasos, el ciclo devuelve un mensaje fijo en español y marca el resultado como degradado. El ciclo no deja una excepción en manos del usuario.
+Si el modelo no responde, se alcanza el máximo de pasos o el turno supera su tiempo máximo (`AGENT_TURN_TIMEOUT_SECONDS`, 90 s por defecto), el ciclo devuelve un mensaje fijo en español y marca el resultado como degradado. El tiempo se revisa antes de cada llamada al modelo: una llamada que ya empezó no se interrumpe y termina por su propio límite (`LLM_TIMEOUT_SECONDS`). El ciclo no deja una excepción en manos del usuario.
 
 ## 2. Controles antes de ejecutar una herramienta
 
@@ -107,6 +107,7 @@ classDiagram
             <<enumeration>>
             ANSWER
             MAX_STEPS
+            TIMEOUT
             LLM_UNAVAILABLE
             INVALID_TOOL_CALLS
             INVALID_ANSWER
