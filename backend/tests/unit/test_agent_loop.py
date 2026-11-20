@@ -1605,3 +1605,20 @@ def test_in_scope_answer_is_not_marked_out_of_scope():
 
 def test_final_answer_schema_offers_the_out_of_scope_flag():
     assert FINAL_ANSWER_SCHEMA["properties"]["out_of_scope"]["type"] == "boolean"
+
+
+def test_tool_call_logs_name_the_arguments_but_not_free_text(caplog):
+    model = ScriptedModel(
+        tool_reply("search_products", query="secretquery", max_price=150),
+        text_reply(),
+        recommending(),
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.application.agent.loop"):
+        run(make_loop(model), "Busco auriculares para trabajar hasta 150 dólares", trace_id="t-2")
+
+    line = next(r.getMessage() for r in caplog.records if r.getMessage().startswith("tool_call"))
+    assert "trace=t-2" in line
+    assert '"max_price": 150' in line
+    assert "<text 11 chars>" in line
+    assert "secretquery" not in line

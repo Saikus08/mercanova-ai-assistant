@@ -65,6 +65,8 @@ Se usa en listados y en las tarjetas que muestra el asistente.
 
 `available_qty` es la suma de las unidades disponibles en los cinco depósitos.
 
+`price` es `null` cuando el producto no tiene un precio cargado. Con el dataset de la cátedra no ocurre (los 360 productos tienen precio), pero el contrato lo admite por esto: un producto sin precio no se puede agregar al carrito y `POST /api/cart/items` responde `PRODUCT_INACTIVE`, igual que con un producto que ya no se vende. No se agregaron estados de producto ni la regla de que todo producto activo tenga precio, porque la letra no lo pide y el caso ya está manejado.
+
 ### Producto (detalle)
 
 Incluye todo lo anterior y además:

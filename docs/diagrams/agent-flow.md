@@ -38,6 +38,14 @@ sequenceDiagram
 
 Si la respuesta anterior fue una pregunta de aclaración (`awaiting_clarification`), el mensaje siguiente se suma al objetivo en vez de reemplazarlo.
 
+Cada turno tiene un identificador de traza y deja una línea de log por paso, todas con la misma traza:
+
+- `model_call`: fase (`tools` o `final`), duración y tokens de entrada y salida.
+- `tool_call`: herramienta, argumentos, resultado (`ok`) y duración. De los argumentos solo se escriben los números, los indicadores y los identificadores de producto; cualquier texto libre se reemplaza por su largo, porque puede contener datos personales.
+- Si el turno termina degradado, un aviso con la razón (`reason=timeout`, `max_steps`, etc.).
+
+El nivel se controla con `LOG_LEVEL` (`INFO` por defecto). Con una traza se reconstruye el recorrido completo de una consulta.
+
 Si el modelo no responde, se alcanza el máximo de pasos o el turno supera su tiempo máximo (`AGENT_TURN_TIMEOUT_SECONDS`, 90 s por defecto), el ciclo devuelve un mensaje fijo en español y marca el resultado como degradado. El tiempo se revisa antes de cada llamada al modelo: una llamada que ya empezó no se interrumpe y termina por su propio límite (`LLM_TIMEOUT_SECONDS`). El ciclo no deja una excepción en manos del usuario.
 
 ## 2. Controles antes de ejecutar una herramienta

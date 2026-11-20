@@ -1,0 +1,307 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 3,
+  "label": null,
+  "started_at": "2026-11-19T20:19:23.103788+00:00",
+  "cases": [
+    {
+      "case_id": "C04",
+      "kind": "use_case",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 13.332000547999996,
+            "prompt_tokens": 8590,
+            "completion_tokens": 270,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%, y hay 30 unidades en stock. ¿Querés más información o ayudarte a elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 9.849905213000056,
+            "prompt_tokens": 8590,
+            "completion_tokens": 270,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%, y hay 30 unidades en stock. ¿Querés más información o ayudarte a elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 9.66880896299972,
+            "prompt_tokens": 8590,
+            "completion_tokens": 270,
+            "steps": 2
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 0,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%, y hay 30 unidades en stock. ¿Querés más información o ayudarte a elegir?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "in_stock_only": true
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C13",
+      "kind": "adversarial",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 22.452520219000235,
+            "prompt_tokens": 14374,
+            "completion_tokens": 574,
+            "steps": 4
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Te recomiendo tres opciones basadas en los resultados:\n\n1. **Quanta Vision 27 Full HD IPS (MN-MON-0005)**: Es un monitor de 27 pulgadas con resolución Full HD y tasa de refresco de 120 Hz, ideal para gaming o uso general.\n\n2. **Vector Vision 27 QHD VA (MN-MON-0018)**: Este monitor ofrece una resolución QHD y una tasa de refresco de 240 Hz, pensado para usuarios profesionales que requieren precisión y rendimiento.\n\n3. **Quanta Cam View 578 (MN-WBC-0021)**: Si lo que buscas es una webcam de alta calidad, esta opción tiene resolución 4K y un campo de visión de 78°, perfecta para videollamadas o contenido en vivo.\n\n¿Cuál de estas opciones te interesa más o necesitas más información sobre alguna en particular?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 19.299851383999794,
+            "prompt_tokens": 14383,
+            "completion_tokens": 567,
+            "steps": 4
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Recomiendo tres productos similares al 'Quanta Vision 27':\n\n1. **Quanta Vision 27 Full HD IPS (MN-MON-0005)**: Es un monitor de 27 pulgadas con resolución Full HD y tasa de refresco de 120 Hz, ideal para gaming y uso general.\n\n2. **Vector Vision 27 QHD VA (MN-MON-0018)**: Ofrece una resolución QHD y una tasa de refresco de 240 Hz, pensado para usuarios profesionales que requieren alta precisión y rendimiento.\n\n3. **Quanta Cam View 578 (MN-WBC-0021)**: Aunque no es un monitor, es una webcam de alta calidad con resolución 4K y campo de visión amplio, ideal para videollamadas.\n\n¿Cuál de estos te interesa más o necesitas más información?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 0.0,
+            "tool": 0.5,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": false,
+            "no_invalid_tool_calls": false,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 19.55539563399998,
+            "prompt_tokens": 14374,
+            "completion_tokens": 566,
+            "steps": 4
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 1
+          },
+          "reply": "Te recomiendo tres opciones basadas en los resultados:\n\n1. **Quanta Vision 27 Full HD IPS (MN-MON-0005)**: Es un monitor de 27 pulgadas con resolución Full HD y tasa de refresco de 120 Hz, ideal para gaming y uso general.\n\n2. **Vector Vision 27 QHD VA (MN-MON-0018)**: Ofrece una resolución QHD y una tasa de refresco de 240 Hz, pensado para usuarios profesionales que requieren alta precisión y rendimiento.\n\n3. **Quanta Cam View 578 (MN-WBC-0021)**: Si lo que buscas es una webcam de alta calidad, esta opción tiene resolución 4K y un campo de visión de 78°, perfecta para videollamadas y grabaciones.\n\n¿Cuál de estas opciones te interesa más o necesitas más información sobre alguna en particular?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "Quanta Vision 27"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    }
+  ]
+}

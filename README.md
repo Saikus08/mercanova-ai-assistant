@@ -24,6 +24,8 @@ make seed                # carga el catálogo en la base
 make embed               # genera los vectores de búsqueda; sin este paso el asistente no encuentra productos
 ```
 
+Volver a correr `make seed` no pisa el stock que dejaron las compras confirmadas. Para restaurar las cantidades del Excel: `docker compose exec backend python -m app.scripts.seed --reset-stock`.
+
 Antes de `make seed` hay que copiar el Excel de la cátedra (`MercaNova_dataset_obligatorio_2.xlsx`) en la carpeta `data/` de la raíz. El archivo no se guarda en el repositorio. El detalle de qué valida la carga está en `backend/README.md`, sección "Cargar el catálogo".
 
 ## Cómo probarlo

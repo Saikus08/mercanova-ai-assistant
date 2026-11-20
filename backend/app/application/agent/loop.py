@@ -5,6 +5,7 @@ phase (one structured answer). Every price, stock figure and product card in the
 from a tool result of the same turn.
 """
 
+import json
 import logging
 import time
 import uuid
@@ -39,6 +40,7 @@ from app.application.agent.grounding import (
     ungrounded_stock_figures,
     unknown_product_ids,
 )
+from app.application.agent.logging_args import loggable_arguments
 from app.application.agent.prompts import (
     CLARIFICATION_RETRY,
     FINAL_INSTRUCTION,
@@ -354,10 +356,11 @@ class AgentLoop:
             }
         )
         logger.info(
-            "tool_call trace=%s step=%s tool=%s ok=%s duration_ms=%.0f",
+            "tool_call trace=%s step=%s tool=%s args=%s ok=%s duration_ms=%.0f",
             turn.trace_id,
             turn.state.step,
             call.name,
+            json.dumps(loggable_arguments(call.arguments), ensure_ascii=False),
             ok,
             duration_ms,
         )

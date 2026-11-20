@@ -1,6 +1,6 @@
 # Flujo de "comprámelo" en el chat
 
-Este diagrama muestra cómo se prepara una compra desde el chat (decisión 0008). Las herramientas `view_cart`, `add_to_cart` y `start_checkout` ya existen. El ciclo del agente, el endpoint de chat y la ventana de confirmación son otras tareas: acá se dibuja el flujo completo para ver dónde pasan los datos personales, y cada parte indica si está implementada.
+Este diagrama muestra cómo se prepara una compra desde el chat (decisión 0008) y dónde pasan los datos personales. Todo el flujo está implementado. El asistente responde con un bloque `checkout_draft` que muestra el resumen del carrito y el botón "Revisar y confirmar la compra". Ese botón lleva a la pantalla de checkout (`/checkout`), la misma que se usa desde el carrito. La conversación se conserva, así que el usuario puede volver al chat sin perderla.
 
 ## 1. Quién ve qué
 
@@ -9,7 +9,7 @@ sequenceDiagram
     participant U as Usuario
     participant L as Asistente (modelo)
     participant D as Dispatcher y herramientas (implementado)
-    participant I as Interfaz, ventana de compra (otra tarea)
+    participant I as Interfaz: chat y pantalla de checkout
     participant B as API de compra (implementado)
 
     U->>L: "Comprámelo"
@@ -22,12 +22,15 @@ sequenceDiagram
         L-->>U: explica qué no alcanza y pide ajustar el carrito
     else todo alcanza
         D-->>L: ready=true + resumen del carrito
-        L-->>U: "La ventana de compra está lista"
-        Note over L,I: el asistente solo prepara la ventana
-        U->>I: abre la ventana y escribe nombre, email y dirección
+        L-->>U: bloque checkout_draft con el resumen del carrito
+        Note over L,I: el asistente solo prepara la compra, no crea la orden
+        U->>I: clic en "Revisar y confirmar la compra"
+        I->>I: abre la pantalla /checkout
+        U->>I: escribe nombre, email y dirección y elige la entrega
         Note over U,I: los datos personales NO pasan por el modelo
         I->>B: POST /api/checkout (datos del cliente)
         B-->>I: orden pending_confirmation
+        I-->>U: diálogo "Confirmá tu compra"
         U->>I: clic en "Confirmar compra"
         I->>B: POST /api/orders/{id}/confirm
         B-->>I: orden confirmed y stock descontado
