@@ -29,6 +29,16 @@ description: Implement a backend feature (endpoint, domain rule, repository, or 
 - Tool results are structured (dict/Pydantic), never free text.
 - State-changing tools (cart, checkout) must be idempotent where possible; checkout only creates a draft.
 
+## Agent loop and prompts (lessons from real use)
+
+- **Enforce in software, not in the prompt.** A rule the model must follow (no invented filters, no negative quantities, ids only from tool results) goes into the loop or the dispatcher as a check that returns `{"error", "hint"}`. A prompt rule is a request: it can be ignored, and it shifts other behavior (a "buy" rule fixed `C07` but made the assistant search instead of ask in `C08`).
+- **Validate model-written arguments defensively.** Our own guards run before the dispatcher validates the schema, so they must not crash on a wrong type (a number or a string where a list was expected).
+- **Never echo values the model sent** in an error message: they may carry personal data. Name the field and the fix.
+- **A row lock does not last a turn.** The cart tools commit in the middle of a turn and a commit releases row locks. Use an advisory lock on its own connection (decision 0012).
+- **Dependency injection for time and randomness**: take the clock as a parameter so the test does not sleep.
+- **Stage explicit paths** (`git add backend/app backend/tests/unit`), never `git add backend` or `-A`: evaluation runs leave JSON files in `backend/tests/eval/results/`.
+- **A new or changed environment variable** goes into `config.py`, `.env.example` and `docker-compose.yml` (the backend only receives what the compose lists), and the container needs `docker compose up -d --build backend`.
+
 ## Done when
 
 - Tests pass locally (`make test-backend`).
