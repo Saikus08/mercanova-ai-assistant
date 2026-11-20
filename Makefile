@@ -16,7 +16,7 @@ pull-models:   ## Download LLM and embedding models into Ollama
 	docker compose exec ollama ollama pull $${LLM_MODEL:-qwen3:8b}
 	docker compose exec ollama ollama pull $${EMBEDDING_MODEL:-nomic-embed-text}
 
-seed:          ## Load the dataset into PostgreSQL and build embeddings (tasks DB-02 / AI-01)
+seed:          ## Load the dataset into PostgreSQL (run `make embed` afterwards)
 	docker compose exec backend python -m app.scripts.seed
 
 embed:         ## Embed products for semantic search; only new or changed ones (needs seed and pull-models)
