@@ -29,3 +29,9 @@ def test_nested_values_are_not_expanded():
 
 def test_the_result_is_json_serializable():
     json.dumps(loggable_arguments({"query": "x", "quantity": 2, "ids": ["MN-1"]}))
+
+
+def test_argument_names_that_are_not_plain_identifiers_are_hidden_too():
+    logged = loggable_arguments({"query": "x", "Ana Pérez vive en Calle 1": 1})
+
+    assert list(logged) == ["query", "<name>"]

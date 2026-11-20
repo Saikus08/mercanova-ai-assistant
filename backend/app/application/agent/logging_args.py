@@ -9,6 +9,7 @@ import re
 from typing import Any
 
 _PRODUCT_ID = re.compile(r"^MN-[A-Z0-9]+(-[A-Z0-9]+)*$")
+_PLAIN_NAME = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 
 
 def _scalar(value: Any) -> Any:
@@ -19,8 +20,13 @@ def _scalar(value: Any) -> Any:
     return "<object>"
 
 
+def _name(key: Any) -> str:
+    # The model writes the names too: an argument the tool does not have can be any text.
+    return key if isinstance(key, str) and _PLAIN_NAME.match(key) else "<name>"
+
+
 def loggable_arguments(arguments: dict[str, Any]) -> dict[str, Any]:
     return {
-        key: [_scalar(item) for item in value] if isinstance(value, list) else _scalar(value)
+        _name(key): [_scalar(item) for item in value] if isinstance(value, list) else _scalar(value)
         for key, value in arguments.items()
     }
