@@ -1,6 +1,7 @@
 """Chat model defaults (decision 0011)."""
 
 import pytest
+from pydantic import ValidationError
 
 from app.config import Settings
 
@@ -32,3 +33,9 @@ def test_turn_time_budget_defaults_to_90_seconds_and_can_be_overridden(monkeypat
         make_settings(monkeypatch, AGENT_TURN_TIMEOUT_SECONDS="45").agent_turn_timeout_seconds
         == 45.0
     )
+
+
+@pytest.mark.parametrize("value", ["0", "-5"])
+def test_turn_time_budget_must_be_positive(monkeypatch, value):
+    with pytest.raises(ValidationError):
+        make_settings(monkeypatch, AGENT_TURN_TIMEOUT_SECONDS=value)

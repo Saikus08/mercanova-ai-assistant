@@ -118,6 +118,12 @@ def test_ensure_can_add_raises_with_details():
     assert (error.value.product_id, error.value.requested, error.value.available) == ("P1", 8, 7)
 
 
+def test_ensure_can_add_does_not_claim_units_in_the_cart_when_it_is_not_told_what_was_added():
+    with pytest.raises(InsufficientStock) as error:
+        ensure_can_add(8, 7, "P1")
+    assert error.value.in_cart == 0
+
+
 def test_ensure_can_add_reports_what_the_cart_already_held():
     with pytest.raises(InsufficientStock) as error:
         ensure_can_add(8, 7, "P1", added=3)

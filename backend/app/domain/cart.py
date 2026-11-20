@@ -44,14 +44,17 @@ def validate_quantity(quantity: object) -> None:
         raise InvalidQuantity(f"Quantity must be an integer from 1 to {MAX_QUANTITY_PER_LINE}")
 
 
-def ensure_can_add(requested_total: int, available: int, product_id: str, added: int = 0) -> None:
+def ensure_can_add(
+    requested_total: int, available: int, product_id: str, added: int | None = None
+) -> None:
     """Raise InsufficientStock when the quantity the line would hold exceeds the stock.
 
     ``added`` is the part of ``requested_total`` this request adds, so the error can say how many
-    units the cart already held.
+    units the cart already held. Without it the error claims none, because it cannot know.
     """
     if requested_total > available:
-        raise InsufficientStock(product_id, requested_total, available, requested_total - added)
+        in_cart = 0 if added is None else requested_total - added
+        raise InsufficientStock(product_id, requested_total, available, in_cart)
 
 
 @dataclass(frozen=True)
