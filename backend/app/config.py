@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # and a turn then takes about 52 s instead of 13 s. True forces it on; None leaves the
     # model default.
     llm_think: bool | None = False
+    # Level of the application logs. INFO includes one line per step of the assistant.
+    log_level: str = "INFO"
     # Maximum model calls per chat turn before a degraded answer.
     agent_max_steps: int = 6
     # Time budget of one chat turn, checked before each model call. A call already running is
