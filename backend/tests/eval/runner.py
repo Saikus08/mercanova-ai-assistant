@@ -333,6 +333,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                         registry.specs(),
                         settings.agent_max_steps,
                         settings.agent_history_messages,
+                        settings.agent_turn_timeout_seconds,
                     )
                     record = execute_run(
                         case, run_index, loop, SqlCart(session, cart_repository), session_id

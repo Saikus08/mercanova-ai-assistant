@@ -5,6 +5,7 @@ from app.domain.search import (
     DEFAULT_TOP_K,
     MAX_TOP_K,
     MIN_TOP_K,
+    InvalidSearchQuery,
     SearchFilters,
     SearchHit,
     SearchUnavailable,
@@ -21,7 +22,7 @@ def search_products(
 ) -> list[SearchHit]:
     query = query.strip()
     if not query:
-        raise ValueError("The search query must not be blank")
+        raise InvalidSearchQuery("The search query must not be blank")
     try:
         vector = embedder.embed_query(query)
     except SearchUnavailable:

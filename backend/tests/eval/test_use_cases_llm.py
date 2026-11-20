@@ -70,6 +70,7 @@ def loop() -> Iterator[AgentLoop]:
             registry.specs(),
             settings.agent_max_steps,
             settings.agent_history_messages,
+            settings.agent_turn_timeout_seconds,
         )
     finally:
         chat.close()

@@ -6,6 +6,7 @@ from app.application.search import search_products
 from app.domain.search import (
     DEFAULT_TOP_K,
     MAX_TOP_K,
+    InvalidSearchQuery,
     ProductDocumentSource,
     SearchFilters,
     SearchHit,
@@ -125,7 +126,7 @@ def test_search_restricts_to_the_embedder_index_id_when_searching():
 def test_search_rejects_query_when_it_is_blank(query):
     embedder, searcher = FakeEmbedder(), FakeSearcher()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidSearchQuery):
         search_products(embedder, searcher, query, SearchFilters())
 
     assert embedder.calls == []

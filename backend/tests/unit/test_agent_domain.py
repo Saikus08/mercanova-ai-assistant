@@ -54,6 +54,7 @@ def test_role_and_stop_reason_values():
         "INVALID_TOOL_CALLS",
         "INVALID_ANSWER",
         "UNGROUNDED_ANSWER",
+        "TIMEOUT",
     }
 
 

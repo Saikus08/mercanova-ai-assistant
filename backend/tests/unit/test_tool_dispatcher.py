@@ -13,7 +13,7 @@ from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
 from app.domain.cart import InsufficientStock, InvalidQuantity, ItemNotInCart, ProductInactive
 from app.domain.catalog import InvalidComparison, ProductNotFound
 from app.domain.purchase import CartEmpty
-from app.domain.search import SearchUnavailable
+from app.domain.search import InvalidSearchQuery, SearchUnavailable
 
 CONTEXT = ToolContext(session_id="session-1")
 
@@ -292,6 +292,22 @@ def test_dispatch_maps_insufficient_stock_to_the_available_units_and_a_hint():
     )
 
 
+def test_dispatch_tells_how_many_more_units_fit_when_the_cart_already_holds_some():
+    result = run_failing(InsufficientStock("MN-001", 9, 4, in_cart=3))
+
+    assert result.payload["error"] == (
+        "Only 1 more unit of MN-001 can be added: 3 already in the cart, 4 available"
+    )
+
+
+def test_dispatch_says_none_fit_when_the_cart_already_holds_all_the_stock():
+    result = run_failing(InsufficientStock("MN-001", 5, 4, in_cart=4))
+
+    assert result.payload["error"] == (
+        "No more units of MN-001 can be added: 4 already in the cart, 4 available"
+    )
+
+
 def test_dispatch_maps_product_inactive_to_a_hint_about_other_products():
     result = run_failing(ProductInactive("MN-003"))
 
@@ -340,11 +356,19 @@ def test_dispatch_maps_a_missing_data_error_to_a_hint_to_tell_the_user():
     assert "not available" in result.payload["hint"]
 
 
-def test_dispatch_maps_value_error_to_an_argument_fix_hint():
-    result = run_failing(ValueError("The search query must not be blank"))
+def test_dispatch_maps_a_blank_search_query_to_an_argument_fix_hint():
+    result = run_failing(InvalidSearchQuery("The search query must not be blank"))
 
     assert result.payload["error"] == "The search query must not be blank"
     assert "Fix the arguments" in result.payload["hint"]
+
+
+def test_dispatch_does_not_blame_the_arguments_for_a_stray_value_error(caplog):
+    with caplog.at_level(logging.ERROR):
+        result = run_failing(ValueError("bug deep inside a tool"))
+
+    assert result.payload["error"] == "Unexpected tool failure"
+    assert "Fix the arguments" not in result.payload["hint"]
 
 
 def test_dispatch_hides_unexpected_failures_and_logs_without_arguments(caplog):

@@ -19,7 +19,7 @@ from app.application.agent.tool import Tool, ToolContext, ToolDataUnavailable
 from app.domain.cart import InsufficientStock, InvalidQuantity, ItemNotInCart, ProductInactive
 from app.domain.catalog import InvalidComparison, ProductNotFound
 from app.domain.purchase import CartEmpty
-from app.domain.search import SearchUnavailable
+from app.domain.search import InvalidSearchQuery, SearchUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,7 @@ class ToolDispatcher:
             )
         except InsufficientStock as error:
             return False, _failure(
-                f"Only {error.available} units of {error.product_id} are available",
+                _stock_message(error),
                 "Offer the user a smaller quantity or call get_alternatives for this product; "
                 "do not add more than is available",
             )
@@ -136,7 +136,7 @@ class ToolDispatcher:
             return False, _failure(
                 str(error), "Tell the user this information is not available; do not guess it"
             )
-        except ValueError as error:
+        except InvalidSearchQuery as error:
             return False, _failure(str(error), "Fix the arguments and call the tool again")
         except Exception:
             logger.exception("Tool %s failed unexpectedly", tool.name)
@@ -145,6 +145,18 @@ class ToolDispatcher:
                 "Do not retry with the same arguments; "
                 "tell the user you could not complete this step",
             )
+
+
+def _stock_message(error: InsufficientStock) -> str:
+    if not error.in_cart:
+        return f"Only {error.available} units of {error.product_id} are available"
+    room = max(error.available - error.in_cart, 0)
+    head = (
+        f"Only {room} more {'unit' if room == 1 else 'units'} of {error.product_id} can be added"
+        if room
+        else f"No more units of {error.product_id} can be added"
+    )
+    return f"{head}: {error.in_cart} already in the cart, {error.available} available"
 
 
 def _as_object(arguments: object) -> dict[str, Any] | None:

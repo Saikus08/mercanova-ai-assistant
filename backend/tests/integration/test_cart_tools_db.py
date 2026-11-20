@@ -159,7 +159,9 @@ def test_adding_beyond_stock_returns_the_actionable_error_and_keeps_the_cart(dis
     result = add(dispatcher, "MN-001", 3)
 
     assert result.ok is False
-    assert result.payload["error"] == "Only 8 units of MN-001 are available"
+    assert result.payload["error"] == (
+        "Only 2 more units of MN-001 can be added: 6 already in the cart, 8 available"
+    )
     assert "get_alternatives" in result.payload["hint"]
     cart = dispatcher.dispatch("view_cart", {}, CONTEXT).payload
     assert [(i["product_id"], i["quantity"]) for i in cart["items"]] == [("MN-001", 6)]
