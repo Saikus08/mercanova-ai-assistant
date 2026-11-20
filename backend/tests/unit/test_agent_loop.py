@@ -38,6 +38,7 @@ from app.domain.agent import (
     StopReason,
     ToolCall,
 )
+from app.domain.cart import InsufficientStock
 
 CONTEXT = ToolContext(session_id="sess-1")
 
@@ -1622,3 +1623,26 @@ def test_tool_call_logs_name_the_arguments_but_not_free_text(caplog):
     assert '"max_price": 150' in line
     assert "<text 11 chars>" in line
     assert "secretquery" not in line
+
+
+# --- figures from a failed tool call -------------------------------------------------------
+
+
+def test_a_stock_figure_from_a_refused_add_to_cart_is_not_flagged_as_invented():
+    def refuse(args, context):
+        raise InsufficientStock(args.product_id, 50, 30)
+
+    fakes = Fakes()
+    registry = ToolRegistry([*fakes.tools(), Tool("add_to_cart", "add", AddToCartArgs, refuse)])
+    model = ScriptedModel(
+        tool_reply("add_to_cart", product_id="MN-1", quantity=50),
+        text_reply(),
+        final(reply="Solo hay 30 unidades disponibles de Alpha. ¿Querés agregar menos?"),
+    )
+    loop = AgentLoop(model, ToolDispatcher(registry), registry.specs(), 6, 8)
+
+    result = run(loop, "Agregá 50 unidades del primero al carrito", state_with_shown())
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert "30 unidades" in result.reply
+    assert len(final_calls(model)) == 1

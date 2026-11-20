@@ -30,6 +30,7 @@ from app.application.agent.grounding import (
     TurnFacts,
     asks_for_negative_quantity,
     leaked_tool_names,
+    numbers_in_payload,
     numbers_in_text,
     result_cards,
     shown_products,
@@ -339,6 +340,10 @@ class AgentLoop:
             valid = not result.invalid
             turn.rejected_call = result.invalid
         turn.state.record_tool(call.name, ok)
+        if not ok:
+            # A refusal also tells the truth about the stock ("only 30 are available"): the
+            # figures it carries are as grounded as those of a successful result.
+            turn.facts.numbers |= numbers_in_payload(payload)
         if ok:
             turn.facts.record(payload)
             turn.state.record_products(shown_products(payload))
