@@ -9,6 +9,7 @@ import pytest
 from app.application.agent.answer import (
     FALLBACK_CLARIFICATION,
     FINAL_ANSWER_SCHEMA,
+    OUT_OF_SCOPE_REPLY,
     TurnResult,
 )
 from app.application.agent.cart_tools import AddToCartArgs, build_cart_tools
@@ -37,6 +38,7 @@ from app.domain.agent import (
     StopReason,
     ToolCall,
 )
+from app.domain.cart import InsufficientStock
 
 CONTEXT = ToolContext(session_id="sess-1")
 
@@ -559,7 +561,7 @@ def test_amount_still_ungrounded_after_the_retry_is_degraded():
     assert result.stop_reason is StopReason.UNGROUNDED_ANSWER
     assert result.degraded
     assert result.recommendations == []
-    assert result.reply.startswith("No pude verificar los precios en este turno")
+    assert result.reply.startswith("No pude verificar los precios, el stock o los productos")
 
 
 def test_amount_in_a_recommendation_reason_is_checked_too():
@@ -1456,6 +1458,156 @@ def test_the_time_budget_is_logged_as_a_degraded_turn(caplog):
     assert "reason=timeout" in caplog.text
 
 
+# --- output guardrail: stock figures and product ids in the reply ------------------------------
+
+
+def test_stock_figure_no_tool_returned_is_retried_once_and_fixed():
+    stock_ids = []
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        final(reply="Del Alpha quedan 12 unidades."),
+        final(reply="Del Alpha hay 5 unidades disponibles."),
+    )
+
+    result = run(_stock_loop(model, stock_ids), "¿Hay stock del MN-1?")
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert result.reply == "Del Alpha hay 5 unidades disponibles."
+    retry = model.calls[-1].messages[-1]
+    assert retry.role is Role.USER
+    assert "stock of 12" in retry.content
+
+
+def test_stock_figure_still_ungrounded_after_the_retry_is_degraded():
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        final(reply="Quedan 12 unidades."),
+        final(reply="Quedan 9 unidades."),
+    )
+
+    result = run(_stock_loop(model, []), "¿Hay stock del MN-1?")
+
+    assert result.stop_reason is StopReason.UNGROUNDED_ANSWER
+    assert result.degraded
+
+
+def test_stock_figure_without_any_tool_call_is_ungrounded():
+    model = ScriptedModel(
+        text_reply(), final(reply="Hay 7 unidades."), final(reply="Hay 7 en stock.")
+    )
+
+    result = run(make_loop(model), "¿Hay stock del Alpha?")
+
+    assert result.stop_reason is StopReason.UNGROUNDED_ANSWER
+
+
+def test_quantity_stated_by_the_customer_is_not_flagged_as_stock():
+    model = ScriptedModel(text_reply(), final(reply="Perfecto, anoto 3 unidades."))
+
+    result = run(make_loop(model), "Quiero 3 unidades")
+
+    assert result.stop_reason is StopReason.ANSWER
+
+
+def test_product_id_in_the_reply_that_no_tool_returned_is_retried_and_fixed():
+    model = searched(
+        recommending(reply="Te recomiendo el MN-777, es el mejor."),
+        recommending(reply="Te recomiendo el Alpha (MN-1)."),
+    )
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert result.reply == "Te recomiendo el Alpha (MN-1)."
+    retry = model.calls[-1].messages[-1]
+    assert "MN-777" in retry.content
+
+
+def test_product_id_from_a_non_card_result_or_typed_by_the_customer_is_allowed():
+    model = ScriptedModel(
+        tool_reply("get_stock", product_id="MN-1"),
+        text_reply(),
+        final(reply="El MN-1 tiene 5 unidades. No encontré el MN-404 que mencionaste."),
+    )
+
+    result = run(_stock_loop(model, []), "¿Hay stock del MN-1 y del MN-404?")
+
+    assert result.stop_reason is StopReason.ANSWER
+
+
+def test_product_id_shown_in_an_earlier_turn_is_allowed():
+    model = ScriptedModel(text_reply(), final(reply="El MN-2 es el segundo que te mostré."))
+
+    result = run(make_loop(model), "¿Cuál era el otro?", state=state_with_shown())
+
+    assert result.stop_reason is StopReason.ANSWER
+
+
+# --- input guardrail: requests outside the store -------------------------------------------
+
+
+def test_out_of_scope_request_gets_the_fixed_refusal():
+    model = ScriptedModel(
+        text_reply(),
+        final(reply="Para las milanesas necesitás pan rallado y huevo.", out_of_scope=True),
+    )
+
+    result = run(make_loop(model), "¿Me pasás una receta de milanesas?")
+
+    assert result.out_of_scope
+    assert result.reply == OUT_OF_SCOPE_REPLY
+    assert result.stop_reason is StopReason.ANSWER
+    assert not result.degraded
+    assert result.recommendations == []
+    assert result.clarification is None
+    assert result.not_found is None
+
+
+def test_out_of_scope_is_not_checked_for_grounding_nor_retried():
+    model = ScriptedModel(
+        text_reply(), final(reply="El mundial costó USD 220 mil millones.", out_of_scope=True)
+    )
+
+    result = run(make_loop(model), "¿Cuánto costó el mundial de Qatar?")
+
+    assert result.out_of_scope
+    assert len(model.calls) == 2  # one tool-phase call and one final answer, no retry
+
+
+def test_out_of_scope_request_does_not_replace_the_shopping_goal():
+    state = AgentState(goal="Busco auriculares para trabajar")
+    model = ScriptedModel(text_reply(), final(out_of_scope=True))
+
+    run(make_loop(model), "¿Quién ganó el último mundial de fútbol?", state=state)
+
+    assert state.goal == "Busco auriculares para trabajar"
+    assert state.awaiting_clarification is False
+
+
+def test_out_of_scope_flag_with_recommendations_is_ignored():
+    model = searched(recommending(reply="Te recomiendo el Alpha.", out_of_scope=True))
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert not result.out_of_scope
+    assert result.reply == "Te recomiendo el Alpha."
+    assert result.recommendations == [{"product": ALPHA, "reason": "Cómodo"}]
+
+
+def test_in_scope_answer_is_not_marked_out_of_scope():
+    model = searched(recommending(reply="Te recomiendo el Alpha."))
+
+    result = run(make_loop(model), "Busco auriculares para trabajar")
+
+    assert result.out_of_scope is False
+
+
+def test_final_answer_schema_offers_the_out_of_scope_flag():
+    assert FINAL_ANSWER_SCHEMA["properties"]["out_of_scope"]["type"] == "boolean"
+
+
 def test_tool_call_logs_name_the_arguments_but_not_free_text(caplog):
     model = ScriptedModel(
         tool_reply("search_products", query="secretquery", max_price=150),
@@ -1471,3 +1623,26 @@ def test_tool_call_logs_name_the_arguments_but_not_free_text(caplog):
     assert '"max_price": 150' in line
     assert "<text 11 chars>" in line
     assert "secretquery" not in line
+
+
+# --- figures from a failed tool call -------------------------------------------------------
+
+
+def test_a_stock_figure_from_a_refused_add_to_cart_is_not_flagged_as_invented():
+    def refuse(args, context):
+        raise InsufficientStock(args.product_id, 50, 30)
+
+    fakes = Fakes()
+    registry = ToolRegistry([*fakes.tools(), Tool("add_to_cart", "add", AddToCartArgs, refuse)])
+    model = ScriptedModel(
+        tool_reply("add_to_cart", product_id="MN-1", quantity=50),
+        text_reply(),
+        final(reply="Solo hay 30 unidades disponibles de Alpha. ¿Querés agregar menos?"),
+    )
+    loop = AgentLoop(model, ToolDispatcher(registry), registry.specs(), 6, 8)
+
+    result = run(loop, "Agregá 50 unidades del primero al carrito", state_with_shown())
+
+    assert result.stop_reason is StopReason.ANSWER
+    assert "30 unidades" in result.reply
+    assert len(final_calls(model)) == 1

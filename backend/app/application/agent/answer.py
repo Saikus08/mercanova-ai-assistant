@@ -33,6 +33,11 @@ class FinalAnswer(_Strict):
     not_found: str | None = Field(
         default=None, description="The searched item when nothing in the catalog matched"
     )
+    out_of_scope: bool = Field(
+        default=False,
+        description="True only when the customer asked for something unrelated to shopping "
+        "in this store (recipes, sports, homework, general knowledge)",
+    )
 
 
 FINAL_ANSWER_SCHEMA: dict[str, Any] = FinalAnswer.model_json_schema()
@@ -42,6 +47,13 @@ FALLBACK_CLARIFICATION: dict[str, Any] = {
     "question": "¿Para qué lo vas a usar y cuál es tu presupuesto máximo?",
     "options": ["Trabajo", "Juegos", "Estudio", "Uso general"],
 }
+
+
+# Replaces the model's reply when it marks the request as outside the store's domain.
+OUT_OF_SCOPE_REPLY = (
+    "Solo puedo ayudarte con compras en MercaNova: buscar productos, compararlos, consultar "
+    "precios y stock, y armar tu carrito. ¿Qué estás buscando?"
+)
 
 
 @dataclass(frozen=True)
@@ -59,3 +71,5 @@ class TurnResult:
     trace_id: str
     # True when the harness built the recommendations from tool data because the model gave none.
     fallback_used: bool = False
+    # True when the input guardrail refused a request outside the store's domain.
+    out_of_scope: bool = False

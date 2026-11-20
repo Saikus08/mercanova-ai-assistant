@@ -292,6 +292,13 @@ def test_dispatch_maps_insufficient_stock_to_the_available_units_and_a_hint():
     )
 
 
+def test_dispatch_returns_the_stock_figures_as_numbers_too():
+    result = run_failing(InsufficientStock("MN-001", 9, 4, in_cart=3))
+
+    assert result.payload["available_qty"] == 4
+    assert result.payload["in_cart"] == 3
+
+
 def test_dispatch_tells_how_many_more_units_fit_when_the_cart_already_holds_some():
     result = run_failing(InsufficientStock("MN-001", 9, 4, in_cart=3))
 

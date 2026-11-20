@@ -112,6 +112,8 @@ class ToolDispatcher:
                 _stock_message(error),
                 "Offer the user a smaller quantity or call get_alternatives for this product; "
                 "do not add more than is available",
+                available_qty=error.available,
+                in_cart=error.in_cart,
             )
         except ProductInactive as error:
             return False, _failure(

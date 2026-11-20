@@ -20,6 +20,7 @@ from app.application.agent.answer import (
     FALLBACK_CLARIFICATION,
     FINAL_ANSWER_SCHEMA,
     MAX_RECOMMENDATIONS,
+    OUT_OF_SCOPE_REPLY,
     Clarification,
     FinalAnswer,
     TurnResult,
@@ -29,12 +30,15 @@ from app.application.agent.grounding import (
     TurnFacts,
     asks_for_negative_quantity,
     leaked_tool_names,
+    numbers_in_payload,
     numbers_in_text,
     result_cards,
     shown_products,
     too_vague_search,
     ungrounded_amounts,
     ungrounded_price_filters,
+    ungrounded_reply_ids,
+    ungrounded_stock_figures,
     unknown_product_ids,
 )
 from app.application.agent.logging_args import loggable_arguments
@@ -90,10 +94,63 @@ DEGRADED_REPLIES = {
         "No pude armar una respuesta confiable. ¿Podés reformular tu consulta?"
     ),
     StopReason.UNGROUNDED_ANSWER: (
-        "No pude verificar los precios en este turno, así que prefiero no mostrarlos. "
-        "¿Querés que lo intente de nuevo?"
+        "No pude verificar los precios, el stock o los productos en este turno, así que "
+        "prefiero no mostrarlos. ¿Querés que lo intente de nuevo?"
     ),
 }
+
+
+@dataclass(frozen=True)
+class _Grounding:
+    """What the answer may state: numbers and product ids from tools or from the customer."""
+
+    numbers: set[Decimal]
+    product_ids: set[str]
+    user_texts: list[str]
+    tool_names: list[str]
+
+
+@dataclass(frozen=True)
+class _Problems:
+    amounts: list[Decimal]
+    stock: list[Decimal]
+    product_ids: list[str]
+    leaks: list[str]
+
+    @property
+    def ungrounded(self) -> bool:
+        return bool(self.amounts or self.stock or self.product_ids)
+
+    def __bool__(self) -> bool:
+        return self.ungrounded or bool(self.leaks)
+
+    def feedback(self) -> str:
+        """The retry instruction for the model, one sentence per kind of problem."""
+        issues = []
+        if self.amounts:
+            amounts = ", ".join(f"{amount:.2f}" for amount in self.amounts)
+            issues.append(
+                f"The reply mentions {amounts} but no tool returned that amount in this turn. "
+                "Rewrite using only prices returned by tools, or remove the amount."
+            )
+        if self.stock:
+            figures = ", ".join(f"{figure:g}" for figure in self.stock)
+            issues.append(
+                f"The reply mentions a stock of {figures} but no tool returned that figure in "
+                "this turn. Use only stock returned by tools, or remove it."
+            )
+        if self.product_ids:
+            issues.append(
+                "The reply mentions product ids no tool returned: "
+                + ", ".join(self.product_ids)
+                + ". Use only ids returned by tools, or remove them."
+            )
+        if self.leaks:
+            issues.append(
+                "Do not mention internal tool or function names to the customer: "
+                + ", ".join(self.leaks)
+            )
+        return " ".join(issues)
 
 
 class _Stop(Exception):
@@ -176,6 +233,7 @@ class AgentLoop:
         on_event: Callable[[dict[str, Any]], None],
     ) -> TurnResult:
         state = turn.state
+        previous_goal = state.goal
         answered_clarification = state.awaiting_clarification and bool(state.goal)
         if answered_clarification:
             # "Para jugar" alone says nothing: it completes the need that was being clarified.
@@ -194,6 +252,10 @@ class AgentLoop:
             state.set_goal(user_message)
         messages.append(ChatMessage.user(FINAL_INSTRUCTION))
         answer = self._grounded_answer(turn, messages)
+        if _refuses(answer):
+            # A request outside the store is not a shopping goal.
+            state.goal = previous_goal
+            return self._out_of_scope(turn)
         state.awaiting_clarification = answer.clarification is not None
         return self._result(turn, answer)
 
@@ -278,6 +340,10 @@ class AgentLoop:
             valid = not result.invalid
             turn.rejected_call = result.invalid
         turn.state.record_tool(call.name, ok)
+        if not ok:
+            # A refusal also tells the truth about the stock ("only 30 are available"): the
+            # figures it carries are as grounded as those of a successful result.
+            turn.facts.numbers |= numbers_in_payload(payload)
         if ok:
             turn.facts.record(payload)
             turn.state.record_products(shown_products(payload))
@@ -306,34 +372,34 @@ class AgentLoop:
         messages.append(ChatMessage.tool(call.name, tool_message(payload)))
         return valid
 
+    def _grounding(self, turn: _Turn) -> _Grounding:
+        numbers = set(turn.facts.numbers)
+        for text in turn.user_texts:
+            numbers |= numbers_in_text(text)
+        return _Grounding(
+            numbers=numbers,
+            product_ids=self._known_ids(turn) | turn.facts.product_ids,
+            user_texts=turn.user_texts,
+            tool_names=[spec.name for spec in self._tool_specs],
+        )
+
     def _grounded_answer(self, turn: _Turn, messages: list[ChatMessage]) -> FinalAnswer:
         answer, raw = self._final_answer(turn, messages)
-        allowed = set(turn.facts.numbers)
-        for text in turn.user_texts:
-            allowed |= numbers_in_text(text)
-        names = [spec.name for spec in self._tool_specs]
-        wrong, leaks = _problems_in(answer, allowed, names)
-        if wrong or leaks:
-            issues = []
-            if wrong:
-                amounts = ", ".join(f"{amount:.2f}" for amount in wrong)
-                issues.append(
-                    f"The reply mentions {amounts} but no tool returned that amount in this turn. "
-                    "Rewrite using only prices returned by tools, or remove the amount."
-                )
-            if leaks:
-                issues.append(
-                    "Do not mention internal tool or function names to the customer: "
-                    + ", ".join(leaks)
-                )
-            messages += [ChatMessage.assistant(raw), ChatMessage.user(" ".join(issues))]
+        if _refuses(answer):
+            return answer  # the harness replaces the whole reply, so there is nothing to check
+        grounding = self._grounding(turn)
+        problems = _problems_in(answer, grounding)
+        if problems:
+            messages += [ChatMessage.assistant(raw), ChatMessage.user(problems.feedback())]
             answer, raw = self._final_answer(turn, messages)
-            wrong, leaks = _problems_in(answer, allowed, names)
-            if wrong:
+            if _refuses(answer):
+                return answer
+            problems = _problems_in(answer, grounding)
+            if problems.ungrounded:
                 raise _Stop(StopReason.UNGROUNDED_ANSWER)
-            if leaks:
+            if problems.leaks:
                 raise _Stop(StopReason.INVALID_ANSWER)
-        return self._complete(turn, messages, answer, raw, allowed, names)
+        return self._complete(turn, messages, answer, raw, grounding)
 
     def _complete(
         self,
@@ -341,8 +407,7 @@ class AgentLoop:
         messages: list[ChatMessage],
         answer: FinalAnswer,
         raw: str,
-        allowed: set[Decimal],
-        names: list[str],
+        grounding: _Grounding,
     ) -> FinalAnswer:
         """At most one extra retry when the answer is valid but does not do its job."""
         if turn.vague_blocked:
@@ -353,7 +418,7 @@ class AgentLoop:
             instruction = RECOMMENDATION_RETRY
         else:
             return answer
-        retried = self._retry_once(turn, messages, raw, instruction, allowed, names)
+        retried = self._retry_once(turn, messages, raw, instruction, grounding)
         if turn.vague_blocked:
             current = retried or answer
             if current.clarification:
@@ -373,8 +438,7 @@ class AgentLoop:
         messages: list[ChatMessage],
         raw: str,
         instruction: str,
-        allowed: set[Decimal],
-        names: list[str],
+        grounding: _Grounding,
     ) -> FinalAnswer | None:
         """The retried answer, or None when the cap is hit or it is invalid or ungrounded."""
         if turn.final_calls >= MAX_FINAL_CALLS:
@@ -384,7 +448,9 @@ class AgentLoop:
             answer, _ = self._final_answer(turn, messages)
         except _Stop:
             return None
-        return None if any(_problems_in(answer, allowed, names)) else answer
+        if _refuses(answer) or _problems_in(answer, grounding):
+            return None
+        return answer
 
     def _final_answer(self, turn: _Turn, messages: list[ChatMessage]) -> tuple[FinalAnswer, str]:
         for _ in range(MAX_FINAL_ATTEMPTS):
@@ -479,6 +545,23 @@ class AgentLoop:
             fallback_used=fallback_used,
         )
 
+    def _out_of_scope(self, turn: _Turn) -> TurnResult:
+        logger.info("Agent turn out of scope trace=%s", turn.trace_id)
+        return TurnResult(
+            reply=OUT_OF_SCOPE_REPLY,
+            recommendations=[],
+            clarification=None,
+            not_found=None,
+            tools_used=turn.tools_used,
+            steps=turn.state.step,
+            stop_reason=StopReason.ANSWER,
+            degraded=False,
+            prompt_tokens=turn.prompt_tokens,
+            completion_tokens=turn.completion_tokens,
+            trace_id=turn.trace_id,
+            out_of_scope=True,
+        )
+
     def _degraded(self, turn: _Turn, reason: StopReason) -> TurnResult:
         logger.warning("Agent turn degraded trace=%s reason=%s", turn.trace_id, reason.value)
         return TurnResult(
@@ -530,11 +613,23 @@ def _needs_fallback(
     return not _lookup_only(turn)
 
 
-def _problems_in(
-    answer: FinalAnswer, allowed: set[Decimal], names: list[str]
-) -> tuple[list[Decimal], list[str]]:
+def _refuses(answer: FinalAnswer) -> bool:
+    """The model marked the request as outside the store and did not recommend or ask anything.
+
+    An answer that also recommends or asks contradicts itself, so the flag is ignored there: a
+    wrong flag must not hide products the customer did ask for.
+    """
+    return answer.out_of_scope and not answer.recommendations and answer.clarification is None
+
+
+def _problems_in(answer: FinalAnswer, grounding: _Grounding) -> _Problems:
     text = _checked_text(answer)
-    return ungrounded_amounts(text, allowed), leaked_tool_names(text, names)
+    return _Problems(
+        amounts=ungrounded_amounts(text, grounding.numbers),
+        stock=ungrounded_stock_figures(text, grounding.numbers),
+        product_ids=ungrounded_reply_ids(text, grounding.product_ids, grounding.user_texts),
+        leaks=leaked_tool_names(text, grounding.tool_names),
+    )
 
 
 def _problems(error: ValidationError) -> str:
