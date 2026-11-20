@@ -11,10 +11,14 @@ from app.application.agent.grounding import (
     leaked_tool_names,
     numbers_in_payload,
     numbers_in_text,
+    product_ids_in_payload,
     shown_products,
+    stock_figures_in_reply,
     too_vague_search,
     ungrounded_amounts,
     ungrounded_price_filters,
+    ungrounded_reply_ids,
+    ungrounded_stock_figures,
     unknown_product_ids,
 )
 from app.domain.agent import ShownProduct
@@ -321,3 +325,53 @@ def test_a_negative_number_in_the_message_is_a_negative_quantity(message):
 )
 def test_ids_ranges_and_plain_quantities_are_not_negative(message):
     assert asks_for_negative_quantity(message) is False
+
+
+# --- stock figures and product ids in the reply --------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("Quedan 7 unidades.", [D("7")]),
+        ("Hay 1 unidad disponible", [D("1")]),
+        ("Tiene 3 disponibles", [D("3")]),
+        ("Hay 12 en stock", [D("12")]),
+        ("Stock: 4", [D("4")]),
+        ("stock de 9", [D("9")]),
+        ("queda 2", [D("2")]),
+        ("Hay stock y sale USD 50", []),
+        ("Tiene 2 puertos USB", []),
+    ],
+)
+def test_stock_figures_in_reply(text, expected):
+    assert stock_figures_in_reply(text) == expected
+
+
+def test_ungrounded_stock_figures_keeps_only_unknown_figures():
+    assert ungrounded_stock_figures("Quedan 5 unidades, o 9 disponibles", {D("5")}) == [D("9")]
+
+
+def test_ungrounded_reply_ids_allows_known_and_typed_ids_once_each():
+    reply = "MN-1 y MN-2 están; MN-3, MN-777 y otra vez MN-777 no."
+
+    assert ungrounded_reply_ids(reply, {"MN-1"}, ["¿y el MN-2?", "mn-3 también"]) == ["MN-777"]
+
+
+def test_ungrounded_reply_ids_does_not_read_a_longer_id_as_a_known_one():
+    assert ungrounded_reply_ids("El MN-10 sí", {"MN-1"}, []) == ["MN-10"]
+
+
+def test_product_ids_in_payload_finds_ids_at_any_depth():
+    payload = {"product_id": "MN-1", "items": [{"product_id": "MN-2"}], "note": "MN-3"}
+
+    assert product_ids_in_payload(payload) == {"MN-1", "MN-2"}
+
+
+def test_turn_facts_record_ids_of_results_that_are_not_cards():
+    facts = TurnFacts()
+
+    facts.record({"product_id": "MN-1", "available_qty": 5, "in_stock": True})
+
+    assert facts.product_ids == {"MN-1"}
+    assert facts.product_cards == {}

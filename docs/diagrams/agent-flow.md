@@ -71,7 +71,9 @@ flowchart TD
     A[JSON del modelo] --> B{¿Cumple el esquema?}
     B -- no --> B1[Un reintento]
     B1 -- sigue mal --> Z1[Respuesta degradada]
-    B -- sí --> C{¿Un monto del texto no vino<br/>de una herramienta ni del cliente,<br/>o nombra una herramienta?}
+    B -- sí --> O{¿El modelo marcó out_of_scope,<br/>sin recomendar ni preguntar?}
+    O -- sí --> O1[Respuesta fija: solo ayudo con compras<br/>en MercaNova. Sin bloques.<br/>El objetivo de compra no cambia]
+    O -- no --> C{¿Un monto, una cifra de stock<br/>o un id de producto del texto<br/>no vino de una herramienta ni del cliente,<br/>o nombra una herramienta?}
     C -- sí --> C1[Un reintento]
     C1 -- sigue mal --> Z2[Respuesta degradada]
     C -- no --> D{¿Se bloqueó una búsqueda vaga<br/>y no hay aclaración?}
@@ -82,6 +84,10 @@ flowchart TD
     D1 --> F
     E1 --> F
 ```
+
+**Guardrail de entrada (decisión 0013).** El esquema de la respuesta final tiene un campo `out_of_scope`. Si el modelo lo marca para un pedido que no es de la tienda (una receta, un resultado deportivo), el software descarta el texto del modelo y responde con un mensaje fijo. Si la misma respuesta también recomienda productos o hace una pregunta, la marca se ignora, para que un error del modelo no oculte productos que el cliente sí pidió.
+
+**Guardrail de salida.** Se aceptan los ids de producto que devolvió una herramienta en el turno, los que se le mostraron al cliente en turnos anteriores y los que escribió el cliente. Las cifras de stock ("quedan 7 unidades", "stock: 4") y los montos tienen que salir de una herramienta del turno o del texto del cliente.
 
 ## 4. Clases
 

@@ -80,7 +80,7 @@ Sobre los 20 casos, las corridas sin ningún fallo fueron 23 de 60 para `llama3.
 - **Dataset acotado.** 20 casos escritos por el equipo, en español rioplatense, sobre un catálogo en inglés de 360 productos.
 - **Qwen con razonamiento solo en 7 casos.** No se midió en los demás por su costo en tiempo.
 - **`qwen3:4b` no se midió.** La issue lo incluía, pero medirlo en una Mac con GPU solo diría qué tan buenas son sus respuestas y no cómo corre sin GPU, que era la razón para probarlo. Queda sin responder si un modelo más chico alcanza en una máquina sin GPU.
-- **Los casos fuera de dominio miden al modelo solo.** El asistente todavía no tiene una guarda de entrada del software (tarea pendiente de guardrails).
+- **Los casos fuera de dominio midieron al modelo solo.** Cuando se hizo esta comparación, el asistente no tenía una guarda de entrada del software. Ahora la tiene (decisión 0013): si el modelo marca el pedido como fuera de la tienda, el software responde con un mensaje fijo. La clasificación la sigue haciendo el modelo, así que C15 y C16 siguen midiendo lo mismo.
 - **Los chequeos de texto son heurísticos.** Se corrigieron tres sesgos del puntaje durante el estudio, siempre antes de las corridas finales: contar el error de negocio de una herramienta como llamada inválida, ignorar los montos que escribió el usuario y no aceptar una pregunta hecha en el texto ni la frase "no tenemos". Los resultados de este documento son los de la versión final del puntaje.
 
 ## Decisión

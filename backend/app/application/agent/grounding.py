@@ -97,6 +97,52 @@ def ungrounded_amounts(reply: str, allowed: set[Decimal]) -> list[Decimal]:
     return [amount for amount in amounts_in_reply(reply) if _quantize(amount) not in known]
 
 
+# A stock figure: "7 unidades", "3 disponibles", "5 en stock", "quedan 2", "stock: 4".
+_STOCK_RE = re.compile(
+    rf"(?P<before>{_NUMBER})\s*(?:unidades|unidad|disponibles|disponible|en\s+stock)(?!\w)"
+    rf"|(?<!\w)(?:quedan|queda|stock(?:\s+de)?:?)\s+(?P<after>{_NUMBER})",
+    re.IGNORECASE,
+)
+# A catalog product id written in the reply (MN-DOC-0001), as a whole token.
+_PRODUCT_ID_RE = re.compile(r"(?<![A-Za-z0-9-])MN(?:-[A-Za-z0-9]+)+(?![A-Za-z0-9-])")
+
+
+def stock_figures_in_reply(text: str) -> list[Decimal]:
+    figures = []
+    for match in _STOCK_RE.finditer(text):
+        figure = _parse_number(match.group("before") or match.group("after"))
+        if figure is not None:
+            figures.append(figure)
+    return figures
+
+
+def ungrounded_stock_figures(reply: str, allowed: set[Decimal]) -> list[Decimal]:
+    """Stock figures in the reply that no tool returned and the customer did not write."""
+    known = _cents(allowed)
+    return [figure for figure in stock_figures_in_reply(reply) if _quantize(figure) not in known]
+
+
+def ungrounded_reply_ids(reply: str, known_ids: set[str], user_texts: list[str]) -> list[str]:
+    """Product ids written in the reply that no tool returned and the customer did not write."""
+    found = dict.fromkeys(_PRODUCT_ID_RE.findall(reply))
+    return [i for i in found if i not in known_ids and not _typed_by_customer(i, user_texts)]
+
+
+def product_ids_in_payload(obj: Any) -> set[str]:
+    """Every ``product_id`` value at any depth of a tool result."""
+    found: set[str] = set()
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key == "product_id" and isinstance(value, str):
+                found.add(value)
+            else:
+                found |= product_ids_in_payload(value)
+    elif isinstance(obj, list | tuple):
+        for value in obj:
+            found |= product_ids_in_payload(value)
+    return found
+
+
 def ungrounded_price_filters(arguments: dict[str, Any], user_texts: list[str]) -> list[str]:
     """Price filter arguments whose number the customer never wrote."""
     stated = _cents(number for text in user_texts for number in numbers_in_text(text))
@@ -184,9 +230,12 @@ class TurnFacts:
 
     product_cards: dict[str, dict[str, Any]] = field(default_factory=dict)
     numbers: set[Decimal] = field(default_factory=set)
+    # Every product id a tool returned, also from results that are not cards (get_price, get_stock).
+    product_ids: set[str] = field(default_factory=set)
 
     def record(self, payload: dict[str, Any]) -> None:
         self.numbers |= numbers_in_payload(payload)
+        self.product_ids |= product_ids_in_payload(payload)
         cards = [_card for key in ("products", "alternatives") for _card in _items(payload, key)]
         if _is_card(payload):
             cards.append(payload)
