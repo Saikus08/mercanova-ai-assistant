@@ -4,14 +4,27 @@ Messages created in one transaction share ``created_at`` (the transaction start 
 ordering uses ``(created_at, id)``: the serial id keeps the insertion order inside a turn.
 """
 
+import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.adapters.persistence.orm.conversation import Conversation, Message
 from app.domain.agent import AgentState
-from app.domain.conversation import ConversationNotFound, MessageRole, StoredMessage
+from app.domain.conversation import (
+    ConversationBusy,
+    ConversationNotFound,
+    MessageRole,
+    StoredMessage,
+)
+
+TURN_LOCK_TIMEOUT_SECONDS = 30.0
+TURN_LOCK_POLL_SECONDS = 0.1
+_TRY_LOCK = text("SELECT pg_try_advisory_lock(hashtext(:key))")
+_UNLOCK = text("SELECT pg_advisory_unlock(hashtext(:key))")
 
 
 def _to_stored(row: Message) -> StoredMessage:
@@ -25,8 +38,41 @@ def _to_stored(row: Message) -> StoredMessage:
 
 
 class SqlAlchemyConversationRepository:
-    def __init__(self, session: Session) -> None:
+    def __init__(
+        self, session: Session, lock_timeout_seconds: float | None = None
+    ) -> None:
         self._session = session
+        self._lock_timeout_seconds = (
+            TURN_LOCK_TIMEOUT_SECONDS if lock_timeout_seconds is None else lock_timeout_seconds
+        )
+
+    @contextmanager
+    def turn_lock(self, conversation_id: str, session_id: str) -> Iterator[None]:
+        """Hold a Postgres advisory lock on the conversation for the whole turn.
+
+        The lock lives on its own connection. A row lock or a lock on the session's connection
+        would be released by the commits that the cart tools and ``append_turn`` make in the
+        middle of a turn. Advisory locks are session-level, so only the explicit unlock frees it.
+        """
+        self._owned(conversation_id, session_id)  # a foreign id must not even queue for the lock
+        key = {"key": f"conversation-turn:{conversation_id}"}
+        engine = self._session.get_bind().engine
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            deadline = time.monotonic() + self._lock_timeout_seconds
+            while not connection.scalar(_TRY_LOCK, key):
+                if time.monotonic() >= deadline:
+                    raise ConversationBusy(conversation_id)
+                time.sleep(TURN_LOCK_POLL_SECONDS)
+            try:
+                yield
+            finally:
+                try:
+                    connection.execute(_UNLOCK, key)
+                except Exception:
+                    # A failed unlock would hand the pool a connection that still holds the
+                    # lock: dropping the connection makes the server release it.
+                    connection.invalidate()
+                    raise
 
     def create(self, session_id: str) -> str:
         conversation = Conversation(session_id=session_id)

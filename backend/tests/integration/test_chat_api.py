@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 
 from app.adapters.api import chat as chat_module
 from app.adapters.api.chat import get_chat_model, get_embedding_model
+from app.adapters.persistence import conversation_repository
+from app.adapters.persistence.conversation_repository import SqlAlchemyConversationRepository
 from app.adapters.persistence.orm.catalog import Brand, Category, Product, ProductEmbedding
 from app.adapters.persistence.orm.conversation import Message
 from app.adapters.persistence.orm.stock import Inventory, Price, Warehouse
@@ -50,6 +52,9 @@ class ScriptedModel:
             raise reply
         return reply
 
+    def close(self):
+        self.closed = True
+
 
 class Boom(BaseException):
     """Not an ``Exception``: what a worker thread gets on KeyboardInterrupt or SystemExit."""
@@ -63,6 +68,9 @@ class FakeEmbedder:
 
     def embed_query(self, text):
         return [1.0] + [0.0] * 767
+
+    def close(self):
+        pass
 
 
 def text_reply(text="ok"):
@@ -461,3 +469,75 @@ def test_stream_worker_owns_the_scope_and_releases_it_after_the_turn(client, use
     assert probe.log == ["enter", "model", "model", "exit"]
     [worker] = probe.threads
     assert worker is not threading.main_thread()
+
+
+# --- one turn at a time per conversation ---------------------------------------------------
+
+
+@pytest.fixture
+def busy_conversation(client, use_model, db_session, monkeypatch):
+    """A conversation whose previous turn is still running (its lock is held)."""
+    monkeypatch.setattr(conversation_repository, "TURN_LOCK_TIMEOUT_SECONDS", 0.2)
+    use_model(ScriptedModel(*plain_turn("Primera")))
+    conversation_id = post(client, "Uno").json()["conversation_id"]
+    use_model(ScriptedModel(*plain_turn("Segunda")))
+    holder = SqlAlchemyConversationRepository(db_session).turn_lock(conversation_id, "session-a")
+    holder.__enter__()
+    try:
+        yield conversation_id
+    finally:
+        holder.__exit__(None, None, None)
+
+
+def test_a_message_to_a_busy_conversation_is_409_and_persists_nothing(
+    client, busy_conversation, db_session
+):
+    before = message_count(db_session)
+
+    response = post(client, "Dos", busy_conversation)
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "CONVERSATION_BUSY"
+    assert message_count(db_session) == before
+
+
+def test_a_stream_to_a_busy_conversation_ends_with_a_busy_error_event(
+    client, use_scope, busy_conversation
+):
+    use_scope(ScriptedModel(*plain_turn("Segunda")))
+
+    response = post(client, "Dos", busy_conversation, path="/api/chat/stream")
+
+    events = parse_sse(response.text)
+    assert events[-1][0] == "error"
+    assert events[-1][1]["error"]["code"] == "CONVERSATION_BUSY"
+
+
+# --- the real service scope ----------------------------------------------------------------
+
+
+def test_stream_through_the_real_scope_ends_with_done_and_closes_what_it_opened(
+    client, db_session, monkeypatch
+):
+    """Only the session factory and the Ollama clients are replaced; the scope is the real one."""
+    model = ScriptedModel(*plain_turn("Hola desde el scope real"))
+    opened: list[Session] = []
+
+    def session_factory():
+        session = Session(bind=db_session.get_bind(), join_transaction_mode="create_savepoint")
+        opened.append(session)
+        return session
+
+    monkeypatch.setattr(chat_module, "get_session_factory", lambda: session_factory)
+    monkeypatch.setattr(chat_module, "OllamaChat", lambda *args, **kwargs: model)
+    monkeypatch.setattr(chat_module, "OllamaEmbeddings", lambda *args, **kwargs: FakeEmbedder())
+
+    response = post_with_deadline(client, path="/api/chat/stream")
+
+    events = parse_sse(response.text)
+    assert [name for name, _ in events][0] == "meta"
+    assert events[-1][0] == "done"
+    assert events[-1][1]["reply"] == "Hola desde el scope real"
+    assert model.closed is True
+    [session] = opened
+    assert session.in_transaction() is False  # closed: nothing left open on the connection

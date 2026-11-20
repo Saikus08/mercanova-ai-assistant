@@ -38,7 +38,12 @@ from app.application.chat import ChatReply, ChatService
 from app.application.ports import ChatModel, EmbeddingModel
 from app.config import get_settings
 from app.domain.agent import LLMUnavailable
-from app.domain.conversation import ConversationNotFound, InvalidMessage, MessageRole
+from app.domain.conversation import (
+    ConversationBusy,
+    ConversationNotFound,
+    InvalidMessage,
+    MessageRole,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +60,10 @@ LLM_UNAVAILABLE_MESSAGE = (
     "El asistente no está disponible por ahora. El resto de la tienda sigue funcionando."
 )
 CONVERSATION_NOT_FOUND_MESSAGE = "La conversación no existe."
+CONVERSATION_BUSY_MESSAGE = (
+    "La conversación todavía está respondiendo el mensaje anterior. "
+    "Probá de nuevo en unos segundos."
+)
 INTERNAL_ERROR_MESSAGE = "Ocurrió un error inesperado."
 
 
@@ -106,6 +115,8 @@ def error_event(error: Exception) -> tuple[str, dict]:
         code, message = "LLM_UNAVAILABLE", LLM_UNAVAILABLE_MESSAGE
     elif isinstance(error, ConversationNotFound):
         code, message = "CONVERSATION_NOT_FOUND", CONVERSATION_NOT_FOUND_MESSAGE
+    elif isinstance(error, ConversationBusy):
+        code, message = "CONVERSATION_BUSY", CONVERSATION_BUSY_MESSAGE
     elif isinstance(error, InvalidMessage):
         code, message = "VALIDATION_ERROR", str(error)
     else:
@@ -185,22 +196,28 @@ def get_service_scope() -> ServiceScope:
     @contextmanager
     def scope() -> Iterator[ChatService]:
         settings = get_settings()
-        session = get_session_factory()()
-        model = OllamaChat(
-            settings.ollama_base_url,
-            settings.llm_model,
-            settings.llm_timeout_seconds,
-            temperature=settings.llm_temperature,
-            num_ctx=settings.llm_num_ctx,
-            think=settings.llm_think,
-        )
-        embedder = OllamaEmbeddings(
-            settings.ollama_base_url, settings.embedding_model, settings.embedding_timeout_seconds
-        )
+        opened: list[Any] = []  # closed in reverse order, including when a later step fails
         try:
+            session = get_session_factory()()
+            opened.append(session)
+            model = OllamaChat(
+                settings.ollama_base_url,
+                settings.llm_model,
+                settings.llm_timeout_seconds,
+                temperature=settings.llm_temperature,
+                num_ctx=settings.llm_num_ctx,
+                think=settings.llm_think,
+            )
+            opened.append(model)
+            embedder = OllamaEmbeddings(
+                settings.ollama_base_url,
+                settings.embedding_model,
+                settings.embedding_timeout_seconds,
+            )
+            opened.append(embedder)
             yield build_chat_service(session, model, embedder)
         finally:
-            for resource in (embedder, model, session):
+            for resource in reversed(opened):
                 try:
                     resource.close()
                 except Exception:

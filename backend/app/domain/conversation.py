@@ -17,6 +17,10 @@ class ConversationNotFound(Exception):
     """No conversation exists with the requested id."""
 
 
+class ConversationBusy(Exception):
+    """Another turn of the same conversation is still running and did not finish in time."""
+
+
 class InvalidMessage(Exception):
     """The user message is blank or longer than MAX_MESSAGE_CHARS."""
 

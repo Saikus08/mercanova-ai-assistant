@@ -1,6 +1,7 @@
 """Chat use case: one user message in, one persisted assistant turn out."""
 
 from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -59,6 +60,24 @@ class ChatService:
         if not text or len(text) > MAX_MESSAGE_CHARS:
             raise InvalidMessage(f"Message must have 1 to {MAX_MESSAGE_CHARS} characters")
 
+        # A new conversation has nobody to compete with; an existing one is held for the whole
+        # turn, from reading its state to saving it.
+        lock: AbstractContextManager[None] = (
+            nullcontext()
+            if conversation_id is None
+            else self._conversations.turn_lock(conversation_id, session_id)
+        )
+        with lock:
+            return self._turn(session_id, text, conversation_id, on_event, on_conversation)
+
+    def _turn(
+        self,
+        session_id: str,
+        text: str,
+        conversation_id: str | None,
+        on_event: Callable[[dict], None] | None,
+        on_conversation: Callable[[str], None] | None,
+    ) -> ChatReply:
         if conversation_id is not None:
             state = self._conversations.load_state(conversation_id, session_id)
         else:

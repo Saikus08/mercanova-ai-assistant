@@ -23,6 +23,7 @@ sequenceDiagram
         S->>DB: crea la conversación
         S->>S: estado vacío
     else conversation_id existente
+        S->>DB: toma el candado de la conversación (espera hasta 30 s)
         S->>DB: carga agent_state de esa sesión
     end
     S-->>A: on_conversation, cola: meta
@@ -41,6 +42,7 @@ sequenceDiagram
         S->>DB: lee sku, imagen y puntaje de las tarjetas
         S->>S: arma los bloques (diagrama 2)
         S->>DB: guarda el turno (diagrama 3)
+        S->>DB: libera el candado de la conversación
         S-->>A: ChatReply, cola: reply
         loop cada palabra del texto
             A-->>U: event token (text)
@@ -52,6 +54,8 @@ sequenceDiagram
         A-->>U: event done (reply, tools_used)
     end
 ```
+
+Si otro turno de la misma conversación sigue corriendo y no termina en 30 s, el segundo no se ejecuta: llega un evento `error` con el código `CONVERSATION_BUSY` (409 en el endpoint sin stream) y no se guarda nada. El candado se libera siempre al terminar el turno, también cuando falla (decisión 0012).
 
 Cualquier otro fallo del turno (conversación inexistente, mensaje inválido, error inesperado) también llega como un evento `error`, con otro código. La respuesta HTTP ya empezó con estado 200, así que el error viaja dentro del flujo. Si el fallo ocurre antes de empezar a transmitir, por ejemplo por un encabezado `X-Session-Id` ausente, responde con un error HTTP normal.
 
