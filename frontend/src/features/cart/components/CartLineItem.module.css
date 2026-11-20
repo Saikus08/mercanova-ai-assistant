@@ -40,6 +40,11 @@
   font-size: var(--font-size-sm);
 }
 
+.stockProblem {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
 .quantity {
   display: flex;
   flex-direction: column;
