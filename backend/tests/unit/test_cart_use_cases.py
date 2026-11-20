@@ -118,6 +118,12 @@ def test_ensure_can_add_raises_with_details():
     assert (error.value.product_id, error.value.requested, error.value.available) == ("P1", 8, 7)
 
 
+def test_ensure_can_add_reports_what_the_cart_already_held():
+    with pytest.raises(InsufficientStock) as error:
+        ensure_can_add(8, 7, "P1", added=3)
+    assert error.value.in_cart == 5
+
+
 # --- use cases ---
 
 
@@ -250,3 +256,12 @@ def test_totals_and_item_count(repo):
 def test_carts_are_separated_by_session(repo):
     add_item(repo, "session-a", "P1", 2)
     assert view_cart(repo, "session-b").items == []
+
+
+def test_add_item_over_the_stock_reports_how_many_were_already_in_the_cart(repo):
+    add_item(repo, SESSION, "P1", 5)
+
+    with pytest.raises(InsufficientStock) as error:
+        add_item(repo, SESSION, "P1", 3)
+
+    assert error.value.in_cart == 5

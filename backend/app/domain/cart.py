@@ -12,11 +12,12 @@ class InvalidQuantity(Exception):
 
 
 class InsufficientStock(Exception):
-    def __init__(self, product_id: str, requested: int, available: int) -> None:
+    def __init__(self, product_id: str, requested: int, available: int, in_cart: int = 0) -> None:
         super().__init__(f"Requested {requested} of {product_id}, only {available} available")
         self.product_id = product_id
         self.requested = requested
         self.available = available
+        self.in_cart = in_cart  # units of the product the cart held before this request
 
 
 class ProductInactive(Exception):
@@ -43,10 +44,14 @@ def validate_quantity(quantity: object) -> None:
         raise InvalidQuantity(f"Quantity must be an integer from 1 to {MAX_QUANTITY_PER_LINE}")
 
 
-def ensure_can_add(requested_total: int, available: int, product_id: str) -> None:
-    """Raise InsufficientStock when the quantity the line would hold exceeds the stock."""
+def ensure_can_add(requested_total: int, available: int, product_id: str, added: int = 0) -> None:
+    """Raise InsufficientStock when the quantity the line would hold exceeds the stock.
+
+    ``added`` is the part of ``requested_total`` this request adds, so the error can say how many
+    units the cart already held.
+    """
     if requested_total > available:
-        raise InsufficientStock(product_id, requested_total, available)
+        raise InsufficientStock(product_id, requested_total, available, requested_total - added)
 
 
 @dataclass(frozen=True)

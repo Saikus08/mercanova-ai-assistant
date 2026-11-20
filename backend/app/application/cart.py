@@ -33,7 +33,9 @@ def add_item(repository: CartRepository, session_id: str, product_id: str, quant
         session_id,
         product_id,
         quantity,
-        lambda requested_total: ensure_can_add(requested_total, info.available_qty, product_id),
+        lambda requested_total: ensure_can_add(
+            requested_total, info.available_qty, product_id, added=quantity
+        ),
     )
     return view_cart(repository, session_id)
 

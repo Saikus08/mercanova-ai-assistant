@@ -292,6 +292,22 @@ def test_dispatch_maps_insufficient_stock_to_the_available_units_and_a_hint():
     )
 
 
+def test_dispatch_tells_how_many_more_units_fit_when_the_cart_already_holds_some():
+    result = run_failing(InsufficientStock("MN-001", 9, 4, in_cart=3))
+
+    assert result.payload["error"] == (
+        "Only 1 more unit of MN-001 can be added: 3 already in the cart, 4 available"
+    )
+
+
+def test_dispatch_says_none_fit_when_the_cart_already_holds_all_the_stock():
+    result = run_failing(InsufficientStock("MN-001", 5, 4, in_cart=4))
+
+    assert result.payload["error"] == (
+        "No more units of MN-001 can be added: 4 already in the cart, 4 available"
+    )
+
+
 def test_dispatch_maps_product_inactive_to_a_hint_about_other_products():
     result = run_failing(ProductInactive("MN-003"))
 

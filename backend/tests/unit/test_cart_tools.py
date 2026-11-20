@@ -218,7 +218,9 @@ def test_add_over_stock_returns_an_actionable_error_and_leaves_the_cart_unchange
     result = add(dispatcher, "MN-001", 2)
 
     assert result.ok is False
-    assert result.payload["error"] == "Only 5 units of MN-001 are available"
+    assert result.payload["error"] == (
+        "Only 1 more unit of MN-001 can be added: 4 already in the cart, 5 available"
+    )
     assert "get_alternatives" in result.payload["hint"]
     assert repository.quantities["s1"] == {"MN-001": 4}
 
