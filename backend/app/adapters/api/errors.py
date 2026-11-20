@@ -69,11 +69,12 @@ def _item_not_in_cart(_: Request, error: Exception) -> JSONResponse:
 def _insufficient_stock(_: Request, error: Exception) -> JSONResponse:
     assert isinstance(error, InsufficientStock)
     available = error.available
-    message = (
-        "Solo hay 1 unidad disponible."
-        if available == 1
-        else f"Solo hay {available} unidades disponibles."
-    )
+    if available <= 0:
+        message = "Este producto no tiene stock en este momento."
+    elif available == 1:
+        message = "Solo hay 1 unidad disponible."
+    else:
+        message = f"Solo hay {available} unidades disponibles."
     return error_response(
         409,
         "INSUFFICIENT_STOCK",

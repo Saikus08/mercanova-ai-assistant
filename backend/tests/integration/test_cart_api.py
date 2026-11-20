@@ -177,6 +177,17 @@ def test_insufficient_stock_message_is_singular_for_one_unit(
     assert response.json()["error"]["message"] == "Solo hay 1 unidad disponible."
 
 
+def test_insufficient_stock_message_says_there_is_no_stock_instead_of_zero_units(
+    client: TestClient, db_session: Session
+):
+    db_session.execute(text("UPDATE inventory SET available_qty = 0 WHERE product_id = 'MN-002'"))
+    response = add(client, "MN-002", 1)
+    assert response.status_code == 409
+    error = response.json()["error"]
+    assert error["message"] == "Este producto no tiene stock en este momento."
+    assert error["details"] == {"product_id": "MN-002", "available_qty": 0}
+
+
 def test_add_inactive_product(client: TestClient):
     response = add(client, "MN-003", 1)
     assert response.status_code == 409
