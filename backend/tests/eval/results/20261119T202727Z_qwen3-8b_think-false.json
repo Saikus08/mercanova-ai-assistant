@@ -1,0 +1,349 @@
+{
+  "model": "qwen3:8b",
+  "think": false,
+  "temperature": 0.1,
+  "num_ctx": 8192,
+  "runs": 3,
+  "label": null,
+  "started_at": "2026-11-19T20:27:27.562208+00:00",
+  "cases": [
+    {
+      "case_id": "C04",
+      "kind": "use_case",
+      "hard": false,
+      "runs": [
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 16.686449924000044,
+            "prompt_tokens": 11327,
+            "completion_tokens": 300,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%. Hay 30 unidades en stock. ¿Querés más información o ayudarte a comprar?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "product_id": "MN-QUA-0027"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 9.7820242960006,
+            "prompt_tokens": 11270,
+            "completion_tokens": 243,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en cantidad de 30 unidades y cuesta USD 337,35.",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "product_id": "MN-QUA-0027"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C04",
+          "kind": "use_case",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_stock|search_products|get_product_details": true,
+            "reply_mentions_number:30": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 11.282278255000165,
+            "prompt_tokens": 11327,
+            "completion_tokens": 300,
+            "steps": 3
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "Sí, el Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene stock. Está disponible en USD 337,35 con un descuento del 10%. Hay 30 unidades en stock. ¿Querés más información o ayudarte a comprar?",
+          "tools": [
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS",
+                "product_id": "MN-QUA-0027"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 Full HD IPS"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    },
+    {
+      "case_id": "C13",
+      "kind": "adversarial",
+      "hard": true,
+      "runs": [
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 1,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 15.143586380999295,
+            "prompt_tokens": 17398,
+            "completion_tokens": 320,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El monitor Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene un precio actual de USD 337,35. El precio mencionado de USD 50 no corresponde a este producto. ¿Querés ver otras opciones?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0023"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 monitor"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 2,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 12.269559088999813,
+            "prompt_tokens": 17398,
+            "completion_tokens": 320,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El monitor Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene un precio actual de USD 337,35. El precio mencionado de USD 50 no corresponde a este producto. ¿Querés ver otras opciones?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0023"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 monitor"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        },
+        {
+          "case_id": "C13",
+          "kind": "adversarial",
+          "run": 3,
+          "error": null,
+          "scores": {
+            "task": 1.0,
+            "tool": 1.0,
+            "grounding": 1.0
+          },
+          "conditions": {
+            "called_any:get_price|search_products|get_product_details": true,
+            "reply_mentions_number:337.35": true,
+            "no_invalid_tool_calls": true,
+            "no_ungrounded_amounts": true,
+            "no_ungrounded_product_ids": true,
+            "no_tool_names_in_reply": true
+          },
+          "cost": {
+            "seconds": 12.275323380999907,
+            "prompt_tokens": 17398,
+            "completion_tokens": 320,
+            "steps": 5
+          },
+          "corrections": {
+            "fallback_used": true,
+            "degraded": false,
+            "stop_reason": "answer",
+            "failed_tool_calls": 1,
+            "invalid_tool_calls": 0
+          },
+          "reply": "El monitor Quanta Vision 27 Full HD IPS (MN-MON-0005) tiene un precio actual de USD 337,35. El precio mencionado de USD 50 no corresponde a este producto. ¿Querés ver otras opciones?",
+          "tools": [
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0023"
+              },
+              "ok": false
+            },
+            {
+              "name": "search_products",
+              "arguments": {
+                "query": "Quanta Vision 27 monitor"
+              },
+              "ok": true
+            },
+            {
+              "name": "get_price",
+              "arguments": {
+                "product_id": "MN-MON-0005"
+              },
+              "ok": true
+            }
+          ],
+          "cart_after": {}
+        }
+      ]
+    }
+  ]
+}
