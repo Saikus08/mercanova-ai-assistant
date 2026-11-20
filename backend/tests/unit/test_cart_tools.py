@@ -323,3 +323,10 @@ def test_start_checkout_does_not_change_the_cart(dispatcher, repository):
     dispatcher.dispatch("start_checkout", {}, CONTEXT)
 
     assert repository.quantities == before
+
+
+def test_start_checkout_description_covers_buying_what_is_already_in_the_cart():
+    tools = {tool.name: tool for tool in build_cart_tools(FakeCartRepository())}
+
+    assert "comprámelo" in tools["start_checkout"].description
+    assert "use start_checkout" in tools["add_to_cart"].description

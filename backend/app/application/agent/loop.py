@@ -25,6 +25,7 @@ from app.application.agent.answer import (
 from app.application.agent.dispatcher import ToolDispatcher
 from app.application.agent.grounding import (
     TurnFacts,
+    asks_for_negative_quantity,
     leaked_tool_names,
     numbers_in_text,
     result_cards,
@@ -58,6 +59,7 @@ logger = logging.getLogger(__name__)
 
 MAX_RECOMMENDATIONS = 3
 SEARCH_TOOL = "search_products"
+ADD_TO_CART_TOOL = "add_to_cart"
 GOAL_MIN_WORDS = 4
 MAX_FINAL_ATTEMPTS = 2  # the first answer and one retry
 MAX_FINAL_CALLS = 4  # per turn: answer, validity retry, grounding retry, one completeness retry
@@ -161,18 +163,25 @@ class AgentLoop:
         on_event: Callable[[dict[str, Any]], None],
     ) -> TurnResult:
         state = turn.state
-        if not state.goal:
+        answered_clarification = state.awaiting_clarification and bool(state.goal)
+        if answered_clarification:
+            # "Para jugar" alone says nothing: it completes the need that was being clarified.
+            state.set_goal(f"{state.goal}. {user_message}")
+        elif not state.goal:
             state.set_goal(user_message)
+        state.awaiting_clarification = False
         state.step = 0
         messages = build_context(state, history, user_message, self._history_messages)
 
         self._tool_phase(turn, messages, context, on_event)
         # Only a turn that searched a new need (and found products) changes the goal; adding to
         # the cart, comparing or asking a price never does.
-        if turn.last_search_cards and len(user_message.split()) >= GOAL_MIN_WORDS:
+        searched_new_need = turn.last_search_cards and len(user_message.split()) >= GOAL_MIN_WORDS
+        if searched_new_need and not answered_clarification:
             state.set_goal(user_message)
         messages.append(ChatMessage.user(FINAL_INSTRUCTION))
         answer = self._grounded_answer(turn, messages)
+        state.awaiting_clarification = answer.clarification is not None
         return self._result(turn, answer)
 
     def _tool_phase(
@@ -235,6 +244,13 @@ class AgentLoop:
                 "it returns; never guess an id",
             }
             turn.rejected_call = True
+        elif call.name == ADD_TO_CART_TOOL and asks_for_negative_quantity(turn.user_texts[-1]):
+            ok, valid, duration_ms = False, False, 0.0
+            payload = {
+                "error": "The customer asked for a negative quantity",
+                "hint": "Do not add anything: tell the customer the quantity must be a whole "
+                "number from 1 and ask how many units they want",
+            }
         elif call.name == SEARCH_TOOL and too_vague_search(call.arguments, turn.user_texts):
             ok, valid, duration_ms = False, False, 0.0
             turn.vague_blocked = True
