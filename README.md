@@ -67,6 +67,7 @@ Toda la configuración se lee de variables de entorno. Ningún secreto se guarda
 | `LLM_MODEL` | Modelo de chat (tiene que soportar herramientas) | `qwen3:8b` |
 | `EMBEDDING_MODEL` | Modelo para la búsqueda por significado | `nomic-embed-text` |
 | `AGENT_MAX_STEPS` | Máximo de llamadas a herramientas por respuesta | `6` |
+| `AGENT_TURN_TIMEOUT_SECONDS` | Tiempo máximo de un turno del asistente, revisado antes de cada llamada al modelo. Una llamada ya empezada no se interrumpe: termina por su propio límite | `90` |
 | `AGENT_HISTORY_MESSAGES` | Cuántos mensajes anteriores recibe el modelo en cada turno | `8` |
 | `LLM_TIMEOUT_SECONDS`, `LLM_TEMPERATURE`, `LLM_NUM_CTX` | Límite de espera por llamada al modelo, temperatura y tamaño de contexto | `120`, `0.1`, `8192` |
 | `LLM_THINK` | Modo de razonamiento del modelo. Apagado por defecto: encendido, un turno tarda unos 52 s en vez de unos 14 s ([decisión 0011](docs/decisions/0011-chat-model.md)) | `false` |
