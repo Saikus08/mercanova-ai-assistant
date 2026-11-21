@@ -23,6 +23,7 @@ export function ChatContainer({ onCheckout }: ChatContainerProps) {
       turns={chat.turns}
       busy={chat.busy}
       onSend={chat.send}
+      onNewConversation={chat.startNewConversation}
       onCheckout={onCheckout}
       renderProductActions={renderAddToCart}
       voice={{

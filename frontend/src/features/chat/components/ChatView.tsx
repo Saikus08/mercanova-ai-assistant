@@ -17,11 +17,13 @@ export interface ChatViewProps extends Omit<BlockActions, 'onSelectOption'> {
   turns: ChatTurn[]
   busy: boolean
   onSend: (text: string) => void
+  /** Clears the conversation so the next message starts a new one. */
+  onNewConversation?: () => void
   voice?: VoiceControls
 }
 
 /** Chat screen: the conversation, examples when it is empty and the message field. */
-export function ChatView({ turns, busy, onSend, voice, ...actions }: ChatViewProps) {
+export function ChatView({ turns, busy, onSend, onNewConversation, voice, ...actions }: ChatViewProps) {
   const endRef = useRef<HTMLDivElement>(null)
   const lastTurn = turns.at(-1)
 
@@ -33,9 +35,16 @@ export function ChatView({ turns, busy, onSend, voice, ...actions }: ChatViewPro
   return (
     <section className={styles.chat} aria-labelledby="chat-title">
       <header className={styles.header}>
-        <h1 id="chat-title" className={styles.title}>
-          Asistente de compras
-        </h1>
+        <div className={styles.headerTop}>
+          <h1 id="chat-title" className={styles.title}>
+            Asistente de compras
+          </h1>
+          {onNewConversation && turns.length > 0 && (
+            <Button variant="secondary" size="sm" disabled={busy} onClick={onNewConversation}>
+              Nueva conversación
+            </Button>
+          )}
+        </div>
         <p className={styles.subtitle}>
           Contame qué necesitás y te recomiendo productos del catálogo con su precio y stock actuales.
         </p>
