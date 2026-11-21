@@ -43,7 +43,7 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     A["Revisar compra (POST /api/checkout)"] --> B{"Respuesta"}
-    B -->|"VALIDATION_ERROR"| C["Marca cada campo con un mensaje en español, sin mostrar el texto en inglés del backend"]
+    B -->|"VALIDATION_ERROR"| C["Marca cada campo con un mensaje en español, sin mostrar el texto en inglés del backend. Con envío elegido no hay selector de depósito: un error de la entrega se muestra arriba del formulario"]
     B -->|"CART_EMPTY o INSUFFICIENT_STOCK"| D["Mensaje y enlace 'Volver al carrito', recarga el carrito"]
     B -->|"201"| E["Diálogo de confirmación"]
     E --> F["Confirmar compra (POST /api/orders/id/confirm)"]
@@ -51,7 +51,10 @@ flowchart TD
     G -->|"200"| H["Compra confirmada, recarga el carrito"]
     G -->|"INSUFFICIENT_STOCK"| I["Cancela la orden pendiente, nombra el producto y las unidades disponibles, enlace 'Volver al carrito'"]
     G -->|"PRICE_CHANGED"| J["Muestra el precio anterior y el nuevo, oculta 'Confirmar compra' y ofrece 'Armar la orden de nuevo'"]
-    G -->|"ORDER_NOT_PENDING u ORDER_NOT_FOUND"| K["Cierra el diálogo, informa y ofrece volver al carrito"]
+    G -->|"ORDER_NOT_PENDING"| N{"GET /api/orders/{id}: ¿ya está confirmada?"}
+    N -->|"sí: la respuesta anterior se perdió"| O["Muestra la compra confirmada y recarga el carrito"]
+    N -->|"no"| K
+    G -->|"ORDER_NOT_FOUND"| K["Cierra el diálogo, informa y ofrece volver al carrito"]
     G -->|"error de red"| L["El diálogo queda abierto con el mensaje, para reintentar"]
     J --> M["Cancela la orden pendiente, recarga el carrito y vuelve al formulario"]
 ```
