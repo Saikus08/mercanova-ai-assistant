@@ -14,9 +14,20 @@ export interface CartLineItemProps {
   onRemove: () => void
 }
 
+/** The stock went down after the product was added: the line cannot be bought as it is. */
+function stockProblemOf(item: CartItem): string | null {
+  if (item.available_qty <= 0) return 'Este producto se quedó sin stock. Quitalo para poder comprar.'
+  if (item.quantity > item.available_qty) {
+    const units = item.available_qty === 1 ? '1 unidad' : `${item.available_qty} unidades`
+    return `Ahora solo hay ${units}. Bajá la cantidad para poder comprar.`
+  }
+  return null
+}
+
 export function CartLineItem({ item, currency, disabled = false, onChangeQuantity, onRemove }: CartLineItemProps) {
   const atMinimum = item.quantity <= 1
   const atMaximum = item.quantity >= item.available_qty
+  const stockProblem = stockProblemOf(item)
 
   return (
     <article className={styles.line} aria-label={item.name}>
@@ -31,6 +42,7 @@ export function CartLineItem({ item, currency, disabled = false, onChangeQuantit
           {item.name}
         </Link>
         <p className={styles.unitPrice}>{formatPrice(item.unit_price, currency)} c/u</p>
+        {stockProblem && <p className={styles.stockProblem}>{stockProblem}</p>}
       </div>
 
       <div className={styles.quantity}>
@@ -58,7 +70,7 @@ export function CartLineItem({ item, currency, disabled = false, onChangeQuantit
             +
           </Button>
         </div>
-        {atMaximum && <p className={styles.hint}>Máximo disponible</p>}
+        {atMaximum && !stockProblem && <p className={styles.hint}>Máximo disponible</p>}
       </div>
 
       <p className={styles.total}>{formatPrice(item.line_total, currency)}</p>

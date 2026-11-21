@@ -91,4 +91,35 @@ describe('CartLineItem', () => {
 
     for (const button of screen.getAllByRole('button')) expect(button).toBeDisabled()
   })
+
+  it('warns when the stock went down below the quantity and lets the user lower it', async () => {
+    const { user, onChangeQuantity } = setup({ quantity: 4, line_total: 400, available_qty: 2 })
+
+    expect(screen.getByText('Ahora solo hay 2 unidades. Bajá la cantidad para poder comprar.')).toBeInTheDocument()
+    expect(screen.queryByText('Máximo disponible')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Quitar una unidad de Flux Vision 24 QHD IPS' }))
+    expect(onChangeQuantity).toHaveBeenCalledWith(3)
+  })
+
+  it('uses the singular when only one unit is left', () => {
+    setup({ quantity: 3, line_total: 300, available_qty: 1 })
+
+    expect(screen.getByText('Ahora solo hay 1 unidad. Bajá la cantidad para poder comprar.')).toBeInTheDocument()
+  })
+
+  it('asks to remove a product that ran out of stock', async () => {
+    const { user, onRemove } = setup({ quantity: 1, line_total: 100, available_qty: 0 })
+
+    expect(screen.getByText('Este producto se quedó sin stock. Quitalo para poder comprar.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Agregar una unidad de Flux Vision 24 QHD IPS' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Quitar Flux Vision 24 QHD IPS del carrito' }))
+    expect(onRemove).toHaveBeenCalledOnce()
+  })
+
+  it('shows no stock warning when the quantity is available', () => {
+    setup({ quantity: 5, line_total: 500, available_qty: 5 })
+
+    expect(screen.queryByText(/Bajá la cantidad|sin stock/)).not.toBeInTheDocument()
+    expect(screen.getByText('Máximo disponible')).toBeInTheDocument()
+  })
 })
