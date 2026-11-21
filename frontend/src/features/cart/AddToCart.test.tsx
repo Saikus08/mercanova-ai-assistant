@@ -61,4 +61,24 @@ describe('AddToCart', () => {
 
     expect(await screen.findByText('1 producto')).toBeInTheDocument()
   })
+
+  it('keeps the error on the card that failed when another card succeeds', async () => {
+    const user = userEvent.setup()
+    renderWithShop(
+      <>
+        <AddToCart productId="MN-HEA-0001" productName="Echo" availableQty={2} />
+        <AddToCart productId="MN-MON-0001" productName="Flux" availableQty={5} />
+      </>,
+      { cartApi: createFakeCartApi({ 'MN-HEA-0001': 2 }) },
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Agregar al carrito: Echo' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Solo hay 2 unidades disponibles.')
+
+    await user.click(screen.getByRole('button', { name: 'Agregar al carrito: Flux' }))
+
+    expect(await screen.findByText('Agregado al carrito')).toBeInTheDocument()
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(screen.getByRole('alert')).toHaveTextContent('Solo hay 2 unidades disponibles.')
+  })
 })

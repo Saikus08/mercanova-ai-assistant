@@ -1,21 +1,23 @@
 import { createContext, useContext } from 'react'
 import type { Cart } from '../../api/types'
 
+/** Outcome of one mutation, with its own message so each caller shows its own error. */
+export type MutationResult = { ok: true } | { ok: false; message: string }
+
 export interface CartState {
   /** Last cart returned by the server. It is kept when a mutation fails. */
   cart: Cart | null
   status: 'loading' | 'ready' | 'error'
   /** Spanish message of the last failed load. */
   errorMessage: string | null
-  /** Product of the mutation in progress, if any. */
-  pendingProductId: string | null
-  /** Spanish message of the last failed mutation (for example INSUFFICIENT_STOCK). */
+  /** Products with a mutation queued or running, so each one stays pending until its own finishes. */
+  pendingProductIds: readonly string[]
+  /** Spanish message of the last failed mutation (for example INSUFFICIENT_STOCK), for the cart screen. */
   actionError: string | null
-  /** Mutations resolve to `true` when the server accepted them. */
-  add: (productId: string, quantity: number) => Promise<boolean>
-  setQuantity: (productId: string, quantity: number) => Promise<boolean>
-  remove: (productId: string) => Promise<boolean>
-  clear: () => Promise<boolean>
+  add: (productId: string, quantity: number) => Promise<MutationResult>
+  setQuantity: (productId: string, quantity: number) => Promise<MutationResult>
+  remove: (productId: string) => Promise<MutationResult>
+  clear: () => Promise<MutationResult>
   clearActionError: () => void
   reload: () => void
 }

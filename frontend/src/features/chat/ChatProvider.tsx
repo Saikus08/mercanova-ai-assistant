@@ -84,7 +84,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     [api, reloadCart],
   )
 
-  const value = useMemo<ChatContextValue>(() => ({ ...state, busy, send }), [state, busy, send])
+  const startNewConversation = useCallback(() => {
+    controller.current?.abort()
+    controller.current = null
+    conversationId.current = null
+    dispatch({ type: 'reset' })
+  }, [])
+
+  const value = useMemo<ChatContextValue>(
+    () => ({ ...state, busy, send, startNewConversation }),
+    [state, busy, send, startNewConversation],
+  )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
 }

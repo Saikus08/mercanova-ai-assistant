@@ -22,7 +22,9 @@ export function ComparisonTable({ block }: { block: ComparisonBlock }) {
         <caption className={styles.caption}>Comparación de productos</caption>
         <thead>
           <tr>
-            <td className={styles.corner} />
+            <th scope="col" className={styles.corner}>
+              <span className="visually-hidden">Característica</span>
+            </th>
             {products.map((product) => (
               <th key={product.product_id} scope="col" className={styles.product}>
                 <Link to={productPath(product.product_id)} className={styles.link}>

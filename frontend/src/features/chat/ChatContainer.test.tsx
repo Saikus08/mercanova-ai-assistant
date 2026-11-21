@@ -114,6 +114,24 @@ describe('ChatContainer', () => {
     expect(onCheckout).toHaveBeenCalledTimes(1)
   })
 
+  it('starts a new conversation that the server does not link to the previous one', async () => {
+    const chatApi = createFakeChatApi([answerEvents('Primera respuesta.', { conversationId: 'c1' })])
+    renderWithShop(<ChatContainer onCheckout={() => {}} />, { chatApi })
+    expect(screen.queryByRole('button', { name: 'Nueva conversación' })).not.toBeInTheDocument()
+
+    const user = await sendMessage('Hola')
+    expect(await screen.findByText('Primera respuesta.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Nueva conversación' }))
+
+    expect(screen.queryByRole('log', { name: 'Conversación' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Busco un monitor para programar' })).toBeInTheDocument()
+
+    await sendMessage('Otra consulta')
+    expect(await screen.findByText('Hola, ¿en qué te ayudo?')).toBeInTheDocument()
+    expect(chatApi.requests[1]).toEqual({ message: 'Otra consulta', conversation_id: null, input_mode: 'text' })
+    expect(screen.queryByText('Primera respuesta.')).not.toBeInTheDocument()
+  })
+
   it('shows the error event message and lets the user write again', async () => {
     const failure: ChatStreamEvent[] = [
       { event: 'meta', data: { conversation_id: 'c1' } },

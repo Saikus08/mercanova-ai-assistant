@@ -31,6 +31,11 @@ sequenceDiagram
     end
     API-->>F: event done (reply, tools_used)
     F->>U: texto final y panel "Cómo lo resolví"
+    opt el usuario elige "Nueva conversación"
+        U->>F: clic en "Nueva conversación"
+        F->>F: borra los mensajes y el conversation_id
+        Note over F,API: el próximo mensaje va con conversation_id null y el backend abre una conversación nueva
+    end
 ```
 
 ## 2. Qué hace cada bloque

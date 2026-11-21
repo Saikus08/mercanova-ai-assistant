@@ -30,7 +30,7 @@ export function CartContainer({ onCheckout }: { onCheckout?: () => void }) {
   return (
     <CartView
       cart={cart.cart}
-      pendingProductId={cart.pendingProductId}
+      pendingProductIds={cart.pendingProductIds}
       actionError={cart.actionError}
       onChangeQuantity={(productId, quantity) => void cart.setQuantity(productId, quantity)}
       onRemove={(productId) => void cart.remove(productId)}

@@ -34,6 +34,7 @@ export type ChatAction =
   | { type: 'sent'; userId: string; assistantId: string; text: string }
   | { type: 'event'; assistantId: string; event: ChatStreamEvent }
   | { type: 'failed'; assistantId: string; message: string }
+  | { type: 'reset' }
 
 export const initialChatState: ChatState = { conversationId: null, turns: [] }
 
@@ -96,6 +97,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       }
     case 'event':
       return applyEvent(state, action.assistantId, action.event)
+    case 'reset':
+      return initialChatState
     case 'failed':
       return updateAssistant(state, action.assistantId, (turn) =>
         turn.status === 'streaming' ? { ...turn, activeTool: null, status: 'error', errorMessage: action.message } : turn,

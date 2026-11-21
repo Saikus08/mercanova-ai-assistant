@@ -7,6 +7,8 @@ export interface ChatContextValue extends ChatState {
   busy: boolean
   /** `inputMode` tells the backend whether the text was typed or transcribed from voice. */
   send: (text: string, inputMode?: InputMode) => void
+  /** Forgets the conversation on screen: the next message starts a new one on the server. */
+  startNewConversation: () => void
 }
 
 export const ChatContext = createContext<ChatContextValue | null>(null)

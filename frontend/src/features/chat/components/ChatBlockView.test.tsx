@@ -67,6 +67,13 @@ describe('ChatBlockView', () => {
     expect(within(within(table).getByRole('row', { name: /Stock/ })).getByText('Sin stock')).toBeInTheDocument()
   })
 
+  it('names the corner cell of the comparison for screen readers', () => {
+    renderBlock({ type: 'comparison', products: [chatProduct(), chatProduct({ product_id: 'MN-HEA-0002' })], attributes: [] })
+
+    const headers = within(screen.getByRole('table')).getAllByRole('columnheader')
+    expect(headers[0]).toHaveAccessibleName('Característica')
+  })
+
   it('sends a quick reply when an option is clicked', async () => {
     const user = userEvent.setup()
     const { onSelectOption } = renderBlock({

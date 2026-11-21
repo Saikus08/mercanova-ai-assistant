@@ -15,6 +15,7 @@ import {
   type CheckoutFormValues,
 } from './checkoutForm'
 import {
+  DELIVERY_VALIDATION_MESSAGE,
   fieldErrorsFromValidation,
   GENERIC_VALIDATION_MESSAGE,
   priceChangedMessage,
@@ -118,8 +119,13 @@ export function CheckoutFlow() {
   const handleCheckoutError = (error: unknown) => {
     if (error instanceof ApiRequestError && error.code === 'VALIDATION_ERROR') {
       const fieldErrors = fieldErrorsFromValidation(error.details)
-      if (Object.keys(fieldErrors).length > 0) setErrors(fieldErrors)
-      else setPageProblem({ message: GENERIC_VALIDATION_MESSAGE, cartLink: false })
+      // With shipping there is no warehouse select, so a delivery error goes above the form instead.
+      const { warehouse, ...otherFields } = fieldErrors
+      const deliveryHidden = formValues.method === 'shipping' && warehouse !== undefined
+      const shown = deliveryHidden ? otherFields : fieldErrors
+      if (Object.keys(shown).length > 0) setErrors(shown)
+      if (deliveryHidden) setPageProblem({ message: DELIVERY_VALIDATION_MESSAGE, cartLink: false })
+      else if (Object.keys(shown).length === 0) setPageProblem({ message: GENERIC_VALIDATION_MESSAGE, cartLink: false })
       return
     }
     if (error instanceof ApiRequestError && (error.code === 'CART_EMPTY' || error.code === 'INSUFFICIENT_STOCK')) {
@@ -149,8 +155,33 @@ export function CheckoutFlow() {
     }
   }
 
+  /** Shows the purchase as complete: the confirmation reached the server and stock was taken. */
+  const complete = (confirmed: Order) => {
+    setCompleted(confirmed)
+    closeDialog()
+    setPageProblem(null)
+    cart.reload()
+  }
+
+  /**
+   * A confirmation whose answer was lost (for example a network error after the server confirmed)
+   * makes the retry fail with ORDER_NOT_PENDING. Reading the order tells whether it was confirmed.
+   */
+  const confirmedAlready = async (target: Order): Promise<Order | null> => {
+    try {
+      const current = await ordersApi.get(target.order_id)
+      return current.status === 'confirmed' ? current : null
+    } catch {
+      return null
+    }
+  }
+
   const handleConfirmError = async (target: Order, error: unknown) => {
-    if (error instanceof ApiRequestError && error.code === 'INSUFFICIENT_STOCK') {
+    if (error instanceof ApiRequestError && error.code === 'ORDER_NOT_PENDING') {
+      const confirmed = await confirmedAlready(target)
+      if (confirmed) complete(confirmed)
+      else settle(messageOf(error))
+    } else if (error instanceof ApiRequestError && error.code === 'INSUFFICIENT_STOCK') {
       await cancelQuietly(target)
       settle(stockMessage(target, error.details))
     } else if (error instanceof ApiRequestError && error.code === 'PRICE_CHANGED') {
@@ -170,10 +201,7 @@ export function CheckoutFlow() {
     setBusy('confirm')
     setDialogMessage(null)
     try {
-      setCompleted(await ordersApi.confirm(order.order_id))
-      closeDialog()
-      setPageProblem(null)
-      cart.reload()
+      complete(await ordersApi.confirm(order.order_id))
     } catch (error) {
       await handleConfirmError(order, error)
     } finally {

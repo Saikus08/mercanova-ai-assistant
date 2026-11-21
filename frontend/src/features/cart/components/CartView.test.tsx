@@ -24,7 +24,7 @@ function setup(props: Partial<CartViewProps> = {}) {
   }
   render(
     <MemoryRouter>
-      <CartView cart={cart} pendingProductId={null} actionError={null} {...handlers} {...props} />
+      <CartView cart={cart} pendingProductIds={[]} actionError={null} {...handlers} {...props} />
     </MemoryRouter>,
   )
   return { ...handlers, user: userEvent.setup() }
@@ -50,7 +50,7 @@ describe('CartView', () => {
   })
 
   it('only blocks the line that is updating', () => {
-    setup({ pendingProductId: 'A' })
+    setup({ pendingProductIds: ['A'] })
 
     expect(screen.getByRole('button', { name: 'Quitar Producto A del carrito' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Quitar Producto B del carrito' })).toBeEnabled()

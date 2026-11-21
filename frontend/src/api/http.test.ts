@@ -132,6 +132,13 @@ describe('apiDelete', () => {
 
     await expect(apiDelete('/cart')).rejects.toMatchObject({ code: 'INTERNAL_ERROR' })
   })
+
+  it.each([204, 200])('resolves to null without failing when a %s answer has no body', async (status) => {
+    // fetch rejects `json()` on an empty body; the backend always sends JSON today.
+    mockFetch({ ok: true, status, json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')) })
+
+    await expect(apiDelete('/cart')).resolves.toBeNull()
+  })
 })
 
 describe('buildQuery', () => {
