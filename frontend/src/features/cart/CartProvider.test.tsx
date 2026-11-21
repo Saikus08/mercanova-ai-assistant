@@ -7,7 +7,7 @@ import type { Cart } from '../../api/types'
 import { createFakeCartApi } from '../../test/fakeCartApi'
 import { CartApiProvider } from './CartApiProvider'
 import { CartProvider } from './CartProvider'
-import { useCart } from './useCart'
+import { useCart, type MutationResult } from './useCart'
 
 function setup(api: CartApi) {
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -64,12 +64,12 @@ describe('CartProvider', () => {
     const { result } = setup(createFakeCartApi({ 'MN-HEA-0001': 2 }))
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    let ok = true
+    let outcome: MutationResult = { ok: true }
     await act(async () => {
-      ok = await result.current.add('MN-HEA-0001', 1)
+      outcome = await result.current.add('MN-HEA-0001', 1)
     })
 
-    expect(ok).toBe(false)
+    expect(outcome).toEqual({ ok: false, message: 'Solo hay 2 unidades disponibles.' })
     expect(result.current.status).toBe('ready')
     expect(result.current.cart?.item_count).toBe(2)
     expect(result.current.actionError).toBe('Solo hay 2 unidades disponibles.')
@@ -91,13 +91,13 @@ describe('CartProvider', () => {
     const { result } = setup(api)
     await waitFor(() => expect(result.current.status).toBe('ready'))
 
-    let first!: Promise<boolean>
-    let second!: Promise<boolean>
+    let first!: Promise<MutationResult>
+    let second!: Promise<MutationResult>
     act(() => {
       first = result.current.setQuantity('MN-MON-0001', 2)
       second = result.current.setQuantity('MN-MON-0001', 3)
     })
-    expect(result.current.pendingProductId).toBe('MN-MON-0001')
+    expect(result.current.pendingProductIds).toEqual(['MN-MON-0001'])
     await waitFor(() => expect(resolvers).toHaveLength(1))
 
     await act(async () => {
@@ -111,6 +111,43 @@ describe('CartProvider', () => {
     })
 
     expect(result.current.cart?.items[0].quantity).toBe(3)
-    expect(result.current.pendingProductId).toBeNull()
+    expect(result.current.pendingProductIds).toEqual([])
+  })
+
+  it('keeps each product pending until its own mutation ends', async () => {
+    const resolvers: Array<() => void> = []
+    const base = createFakeCartApi({ 'MN-MON-0001': 1, 'MN-HEA-0001': 1 })
+    const api: CartApi = {
+      ...base,
+      updateQuantity: (id, qty) =>
+        new Promise<Cart>((resolve) => {
+          resolvers.push(() => resolve(base.updateQuantity(id, qty)))
+        }),
+    }
+    const { result } = setup(api)
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    let first!: Promise<MutationResult>
+    let second!: Promise<MutationResult>
+    act(() => {
+      first = result.current.setQuantity('MN-MON-0001', 2)
+      second = result.current.setQuantity('MN-HEA-0001', 2)
+    })
+    // The first product is still waiting for its answer even though another one was changed after it.
+    expect(result.current.pendingProductIds).toEqual(['MN-MON-0001', 'MN-HEA-0001'])
+
+    await waitFor(() => expect(resolvers).toHaveLength(1))
+    await act(async () => {
+      resolvers[0]()
+      await first
+    })
+    expect(result.current.pendingProductIds).toEqual(['MN-HEA-0001'])
+
+    await waitFor(() => expect(resolvers).toHaveLength(2))
+    await act(async () => {
+      resolvers[1]()
+      await second
+    })
+    expect(result.current.pendingProductIds).toEqual([])
   })
 })

@@ -8,8 +8,8 @@ import styles from './CartView.module.css'
 
 export interface CartViewProps {
   cart: Cart
-  /** Product whose line is being updated. */
-  pendingProductId: string | null
+  /** Products whose lines are being updated. */
+  pendingProductIds: readonly string[]
   /** Spanish message of the last failed action; the cart stays visible. */
   actionError: string | null
   onChangeQuantity: (productId: string, quantity: number) => void
@@ -20,7 +20,7 @@ export interface CartViewProps {
 
 export function CartView({
   cart,
-  pendingProductId,
+  pendingProductIds,
   actionError,
   onChangeQuantity,
   onRemove,
@@ -57,7 +57,7 @@ export function CartView({
                   <CartLineItem
                     item={item}
                     currency={cart.currency}
-                    disabled={pendingProductId === item.product_id}
+                    disabled={pendingProductIds.includes(item.product_id)}
                     onChangeQuantity={(quantity) => onChangeQuantity(item.product_id, quantity)}
                     onRemove={() => onRemove(item.product_id)}
                   />

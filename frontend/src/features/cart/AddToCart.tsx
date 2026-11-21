@@ -4,6 +4,8 @@ import { AddToCartButton } from './components/AddToCartButton'
 import { useCart } from './useCart'
 import styles from './AddToCart.module.css'
 
+type Feedback = { kind: 'idle' } | { kind: 'added' } | { kind: 'failed'; message: string }
+
 export interface AddToCartProps {
   productId: string
   productName: string
@@ -14,12 +16,13 @@ export interface AddToCartProps {
 /** Adds one unit of a product to the cart (RF-09) and shows the outcome next to the button. */
 export function AddToCart({ productId, productName, availableQty, size }: AddToCartProps) {
   const cart = useCart()
-  const [feedback, setFeedback] = useState<'idle' | 'added' | 'failed'>('idle')
+  // The message is this card's own: another card failing at the same time does not show here.
+  const [feedback, setFeedback] = useState<Feedback>({ kind: 'idle' })
 
   const handleAdd = async () => {
-    setFeedback('idle')
-    const added = await cart.add(productId, 1)
-    setFeedback(added ? 'added' : 'failed')
+    setFeedback({ kind: 'idle' })
+    const result = await cart.add(productId, 1)
+    setFeedback(result.ok ? { kind: 'added' } : { kind: 'failed', message: result.message })
   }
 
   return (
@@ -27,18 +30,18 @@ export function AddToCart({ productId, productName, availableQty, size }: AddToC
       <AddToCartButton
         size={size}
         outOfStock={availableQty <= 0}
-        pending={cart.pendingProductId === productId}
+        pending={cart.pendingProductIds.includes(productId)}
         ariaLabel={`Agregar al carrito: ${productName}`}
         onAdd={() => void handleAdd()}
       />
-      {feedback === 'added' && (
+      {feedback.kind === 'added' && (
         <p role="status" className={styles.success}>
           Agregado al carrito
         </p>
       )}
-      {feedback === 'failed' && cart.actionError && (
+      {feedback.kind === 'failed' && (
         <p role="alert" className={styles.error}>
-          {cart.actionError}
+          {feedback.message}
         </p>
       )}
     </div>
