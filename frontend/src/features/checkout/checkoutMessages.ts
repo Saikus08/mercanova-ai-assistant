@@ -4,6 +4,7 @@ import type { CheckoutFormErrors } from './checkoutForm'
 
 export const FIELD_ERROR_MESSAGE = 'Revisá este dato'
 export const GENERIC_VALIDATION_MESSAGE = 'Revisá los datos ingresados e intentá de nuevo.'
+export const DELIVERY_VALIDATION_MESSAGE = 'No pudimos usar la forma de entrega elegida. Revisala e intentá de nuevo.'
 export const UNEXPECTED_MESSAGE = 'Ocurrió un error inesperado. Intentá de nuevo en unos minutos.'
 
 const productName = (order: Order, productId: unknown): string =>

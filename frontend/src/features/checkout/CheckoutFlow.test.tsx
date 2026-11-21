@@ -311,4 +311,51 @@ describe('CheckoutFlow', () => {
 
     expect(await screen.findByRole('button', { name: 'Revisar compra' })).toBeInTheDocument()
   })
+
+  it('shows the confirmed purchase when the answer to "confirmar" was lost and the user retries', async () => {
+    const { user, ordersApi } = setup({
+      orders: (base) => ({
+        confirm: vi
+          .fn<OrdersApi['confirm']>()
+          // The server confirms the order, but the answer never reaches the browser.
+          .mockImplementationOnce(async (orderId) => {
+            await base.confirm(orderId)
+            throw new ApiRequestError('NETWORK_ERROR', 'No pudimos conectarnos con la tienda.', null)
+          })
+          .mockImplementation(base.confirm),
+      }),
+    })
+    const dialog = await openDialog(user)
+
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar compra' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('No pudimos conectarnos con la tienda.')
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar compra' }))
+
+    expect(await screen.findByRole('heading', { name: '¡Compra confirmada!' })).toBeInTheDocument()
+    expect(screen.getByText('ORD-TEST-1')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Volver al carrito' })).not.toBeInTheDocument()
+    expect(ordersApi.get).toHaveBeenCalledWith('ORD-TEST-1')
+  })
+
+  it('shows a delivery validation error above the form when shipping is chosen', async () => {
+    const { user, ordersApi } = setup({
+      orders: () => ({
+        checkout: vi.fn().mockRejectedValue(
+          new ApiRequestError('VALIDATION_ERROR', 'Hay datos inválidos.', 400, {
+            errors: [{ field: 'delivery.method', message: 'shipping is not available' }],
+          }),
+        ),
+      }),
+    })
+    await fillForm(user)
+    await user.click(screen.getByRole('radio', { name: 'Envío a domicilio' }))
+
+    await user.click(screen.getByRole('button', { name: 'Revisar compra' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos usar la forma de entrega elegida. Revisala e intentá de nuevo.',
+    )
+    expect(screen.queryByText(/not available/)).not.toBeInTheDocument()
+    expect(ordersApi.confirm).not.toHaveBeenCalled()
+  })
 })
